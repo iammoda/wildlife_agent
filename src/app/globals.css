@@ -1,26 +1,275 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* ============================================
+   CSS VARIABLES - LIGHT MODE (DEFAULT)
+   Claude-inspired calm, welcoming design with green accents
+   ============================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds - warm, soft tones */
+  --color-bg-primary: #FAF9F7;
+  --color-bg-secondary: #FFFFFF;
+  --color-bg-tertiary: #F4F2EE;
+  --color-bg-card: #FFFFFF;
+  --color-bg-elevated: #FFFFFF;
+  
+  /* Text */
+  --color-text-primary: #2D3436;
+  --color-text-secondary: #636E72;
+  --color-text-muted: #B2BEC3;
+  
+  /* Brand - forest green theme */
+  --color-brand-primary: #2D5A27;
+  --color-brand-light: #E8F5E9;
+  --color-brand-secondary: #4A7C43;
+  --color-brand-accent: #81C784;
+  
+  /* UI Elements */
+  --color-border: #E8E6E1;
+  --color-border-light: #F0EDE8;
+  --color-input-bg: #FFFFFF;
+  --color-input-border: #DDD9D1;
+  --color-input-focus: #2D5A27;
+  --color-input-placeholder: #9CA3AF;
+  
+  /* Chat */
+  --color-bubble-user: #2D5A27;
+  --color-bubble-user-text: #FFFFFF;
+  --color-bubble-assistant: #F4F2EE;
+  --color-bubble-assistant-text: #2D3436;
+  
+  /* Status */
+  --color-error: #E74C3C;
+  --color-success: #27AE60;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-input: 0 2px 8px rgba(45, 90, 39, 0.08);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ============================================
+   CSS VARIABLES - DARK MODE
+   Same green tones as light mode for consistency
+   ============================================ */
+.dark {
+  /* Backgrounds - deep, comfortable darks */
+  --color-bg-primary: #1A1D1E;
+  --color-bg-secondary: #232728;
+  --color-bg-tertiary: #2D3133;
+  --color-bg-card: #232728;
+  --color-bg-elevated: #2D3133;
+  
+  /* Text */
+  --color-text-primary: #F5F5F5;
+  --color-text-secondary: #A0A8AB;
+  --color-text-muted: #6B7275;
+  
+  /* Brand - same forest green, adjusted for dark mode visibility */
+  --color-brand-primary: #4A7C43;
+  --color-brand-light: #1E3A1A;
+  --color-brand-secondary: #5A9B52;
+  --color-brand-accent: #6AAF67;
+  
+  /* UI Elements */
+  --color-border: #3A3F41;
+  --color-border-light: #2D3133;
+  --color-input-bg: #2D3133;
+  --color-input-border: #3A3F41;
+  --color-input-focus: #4A7C43;
+  --color-input-placeholder: #6B7275;
+  
+  /* Chat */
+  --color-bubble-user: #2D5A27;
+  --color-bubble-user-text: #FFFFFF;
+  --color-bubble-assistant: #2D3133;
+  --color-bubble-assistant-text: #F5F5F5;
+  
+  /* Status */
+  --color-error: #E74C3C;
+  --color-success: #27AE60;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-input: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================
+   BASE STYLES
+   ============================================ */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Title font - Source Serif 4 */
+.font-title {
+  font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+}
+
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Backgrounds */
+.bg-primary { background-color: var(--color-bg-primary); }
+.bg-secondary { background-color: var(--color-bg-secondary); }
+.bg-tertiary { background-color: var(--color-bg-tertiary); }
+.bg-card { background-color: var(--color-bg-card); }
+
+/* Text colors */
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-muted); }
+
+/* Brand colors */
+.text-brand { color: var(--color-brand-primary); }
+.bg-brand { background-color: var(--color-brand-primary); }
+.text-accent { color: var(--color-brand-accent); }
+
+/* Borders */
+.border-default { border-color: var(--color-border); }
+.border-light { border-color: var(--color-border-light); }
+
+/* Chat bubbles */
+.bg-bubble-user { background-color: var(--color-bubble-user); }
+.bg-bubble-assistant { background-color: var(--color-bubble-assistant); }
+
+/* Status */
+.text-error { color: var(--color-error); }
+.bg-error { background-color: var(--color-error); }
+.text-success { color: var(--color-success); }
+.bg-success { background-color: var(--color-success); }
+
+/* Shadows */
+.shadow-card { box-shadow: var(--shadow-md); }
+
+/* Input styling - Claude-inspired centered input */
+.input-base {
+  background-color: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+}
+
+.input-base::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.input-base:focus {
+  outline: none;
+  border-color: var(--color-input-focus);
+  box-shadow: var(--shadow-input);
+}
+
+/* Card styling */
+.card-base {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  border-radius: 16px;
+}
+
+/* Button styling */
+.btn-primary {
+  background-color: var(--color-brand-primary);
+  color: white;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-brand-secondary);
+  transform: translateY(-1px);
+}
+
+/* Secondary button with green outline */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-brand-primary);
+  border: 1.5px solid var(--color-brand-primary);
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-brand-light);
+}
+
+/* Soft green accent background */
+.bg-brand-soft {
+  background-color: var(--color-brand-light);
+}
+
+/* Green tinted elements */
+.accent-pill {
+  background-color: var(--color-brand-light);
+  color: var(--color-brand-primary);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
 }
