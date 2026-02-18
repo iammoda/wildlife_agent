@@ -24,72 +24,9 @@ export function ChatView({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isProcessing]);
 
+  // Empty state is now handled by WelcomeView
   if (messages.length === 0) {
-    return (
-      <div 
-        className="flex-1 flex flex-col items-center justify-center px-4 py-8"
-        style={{ backgroundColor: "var(--color-bg-primary)" }}
-      >
-        {/* Green tinted squirrel icon */}
-        <div 
-          className="mb-8 p-4 rounded-full"
-          style={{ 
-            backgroundColor: "var(--color-brand-light)",
-            color: "var(--color-brand-primary)"
-          }}
-        >
-          <SquirrelLogo size={56} />
-        </div>
-        
-        {/* Welcome heading - Claude-style serif font */}
-        <h2 
-          className="text-2xl font-title font-semibold mb-3"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          Welcome to Wildlife Intake
-        </h2>
-        
-        {/* Subtitle */}
-        <p 
-          className="text-center max-w-md mb-8 leading-relaxed"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
-          Record your first intake by speaking, typing, or scanning a paper
-          form. I&apos;m here to help!
-        </p>
-        
-        {/* Quick action pills - Claude-style */}
-        <div className="flex flex-wrap justify-center gap-2">
-          <span 
-            className="px-4 py-2 rounded-full text-sm font-medium cursor-default"
-            style={{ 
-              backgroundColor: "var(--color-brand-light)",
-              color: "var(--color-brand-primary)"
-            }}
-          >
-            New Intake
-          </span>
-          <span 
-            className="px-4 py-2 rounded-full text-sm font-medium cursor-default"
-            style={{ 
-              backgroundColor: "var(--color-bg-tertiary)",
-              color: "var(--color-text-secondary)"
-            }}
-          >
-            Scan Document
-          </span>
-          <span 
-            className="px-4 py-2 rounded-full text-sm font-medium cursor-default"
-            style={{ 
-              backgroundColor: "var(--color-bg-tertiary)",
-              color: "var(--color-text-secondary)"
-            }}
-          >
-            Voice Recording
-          </span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
