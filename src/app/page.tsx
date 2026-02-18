@@ -7,6 +7,7 @@ import { useChat } from "@/hooks/useChat";
 import { useSummary } from "@/hooks/useSummary";
 import { GreetingHeader } from "@/components/chat/GreetingHeader";
 import { ChatView } from "@/components/chat/ChatView";
+import { WelcomeView } from "@/components/chat/WelcomeView";
 import { ChatInputBar } from "@/components/chat/ChatInputBar";
 import { SummaryBar } from "@/components/chat/SummaryBar";
 import { IntakeEditModal } from "@/components/intake/IntakeEditModal";
@@ -80,6 +81,37 @@ export default function HomePage() {
     router.push("/settings");
   };
 
+  const isInChatMode = messages.length > 0;
+
+  // Welcome mode - greeting and input are grouped together in center
+  if (!isInChatMode) {
+    return (
+      <div 
+        className="min-h-screen flex flex-col relative"
+        style={{ backgroundColor: "var(--color-bg-primary)" }}
+      >
+        {/* Centered content container */}
+        <div className="flex-1 flex flex-col items-center justify-center px-4">
+          <WelcomeView 
+            userName={user.name}
+            onSettingsClick={handleSettingsClick}
+          />
+          <ChatInputBar
+            onSendMessage={sendTextMessage}
+            onVoiceRecord={sendVoiceMessage}
+            onDocumentCapture={sendDocumentCapture}
+            isProcessing={isProcessing}
+            isWelcomeMode={true}
+          />
+        </div>
+        
+        {/* Summary bar pinned to bottom */}
+        <SummaryBar stats={stats} isLoading={summaryLoading} />
+      </div>
+    );
+  }
+
+  // Chat mode - standard layout
   return (
     <div 
       className="min-h-screen flex flex-col"
@@ -89,19 +121,24 @@ export default function HomePage() {
         userName={user.name}
         onSettingsClick={handleSettingsClick}
       />
+      
       <ChatView
         messages={messages}
         isProcessing={isProcessing}
         onConfirmIntake={handleConfirmIntake}
         onEditIntake={handleEditIntake}
       />
-      <SummaryBar stats={stats} isLoading={summaryLoading} />
+      
       <ChatInputBar
         onSendMessage={sendTextMessage}
         onVoiceRecord={sendVoiceMessage}
         onDocumentCapture={sendDocumentCapture}
         isProcessing={isProcessing}
+        isWelcomeMode={false}
       />
+      
+      <SummaryBar stats={stats} isLoading={summaryLoading} />
+      
       {editingIntake && (
         <IntakeEditModal
           isOpen={editModalOpen}

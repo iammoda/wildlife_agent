@@ -1,100 +1,54 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* ============================================
-   CSS VARIABLES - LIGHT MODE (DEFAULT)
-   Claude-inspired calm, welcoming design with green accents
+   CSS VARIABLES - SINGLE DARK MODE
+   Wildlife Rehab - Warm, earthy, professional
    ============================================ */
 :root {
-  /* Backgrounds - warm, soft tones */
-  --color-bg-primary: #FAF9F7;
-  --color-bg-secondary: #FFFFFF;
-  --color-bg-tertiary: #F4F2EE;
-  --color-bg-card: #FFFFFF;
-  --color-bg-elevated: #FFFFFF;
+  /* Backgrounds - warm dark with earthy undertone */
+  --color-bg-primary: #1C1F1C;
+  --color-bg-secondary: #242824;
+  --color-bg-tertiary: #2C312C;
+  --color-bg-card: #242824;
+  --color-bg-elevated: #2C312C;
   
-  /* Text */
-  --color-text-primary: #2D3436;
-  --color-text-secondary: #636E72;
-  --color-text-muted: #B2BEC3;
+  /* Text - warm light tones */
+  --color-text-primary: #F0F2F0;
+  --color-text-secondary: #A8B0A8;
+  --color-text-muted: #6B756B;
+  --color-text-greeting: #D4DCD4;
   
-  /* Brand - forest green theme */
-  --color-brand-primary: #2D5A27;
-  --color-brand-light: #E8F5E9;
-  --color-brand-secondary: #4A7C43;
-  --color-brand-accent: #81C784;
-  
-  /* UI Elements */
-  --color-border: #E8E6E1;
-  --color-border-light: #F0EDE8;
-  --color-input-bg: #FFFFFF;
-  --color-input-border: #DDD9D1;
-  --color-input-focus: #2D5A27;
-  --color-input-placeholder: #9CA3AF;
-  
-  /* Chat */
-  --color-bubble-user: #2D5A27;
-  --color-bubble-user-text: #FFFFFF;
-  --color-bubble-assistant: #F4F2EE;
-  --color-bubble-assistant-text: #2D3436;
-  
-  /* Status */
-  --color-error: #E74C3C;
-  --color-success: #27AE60;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-input: 0 2px 8px rgba(45, 90, 39, 0.08);
-}
-
-/* ============================================
-   CSS VARIABLES - DARK MODE
-   Same green tones as light mode for consistency
-   ============================================ */
-.dark {
-  /* Backgrounds - deep, comfortable darks */
-  --color-bg-primary: #1A1D1E;
-  --color-bg-secondary: #232728;
-  --color-bg-tertiary: #2D3133;
-  --color-bg-card: #232728;
-  --color-bg-elevated: #2D3133;
-  
-  /* Text */
-  --color-text-primary: #F5F5F5;
-  --color-text-secondary: #A0A8AB;
-  --color-text-muted: #6B7275;
-  
-  /* Brand - same forest green, adjusted for dark mode visibility */
-  --color-brand-primary: #4A7C43;
-  --color-brand-light: #1E3A1A;
-  --color-brand-secondary: #5A9B52;
-  --color-brand-accent: #6AAF67;
+  /* Brand - earthy forest green (less neon, more natural) */
+  --color-brand-primary: #4A7A45;
+  --color-brand-light: #1E2E1C;
+  --color-brand-lighter: #243222;
+  --color-brand-secondary: #5B8B56;
+  --color-brand-accent: #6B9B66;
   
   /* UI Elements */
-  --color-border: #3A3F41;
-  --color-border-light: #2D3133;
-  --color-input-bg: #2D3133;
-  --color-input-border: #3A3F41;
-  --color-input-focus: #4A7C43;
-  --color-input-placeholder: #6B7275;
+  --color-border: #3A423A;
+  --color-border-light: #323832;
+  --color-input-bg: #2C312C;
+  --color-input-border: #3A423A;
+  --color-input-focus: #4A7A45;
+  --color-input-placeholder: #6B756B;
   
   /* Chat */
-  --color-bubble-user: #2D5A27;
+  --color-bubble-user: #3D6B38;
   --color-bubble-user-text: #FFFFFF;
-  --color-bubble-assistant: #2D3133;
-  --color-bubble-assistant-text: #F5F5F5;
+  --color-bubble-assistant: #2C312C;
+  --color-bubble-assistant-text: #F0F2F0;
   
   /* Status */
-  --color-error: #E74C3C;
-  --color-success: #27AE60;
+  --color-error: #C54545;
+  --color-success: #4A8A4E;
   
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-input: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-input: 0 0 0 3px rgba(74, 122, 69, 0.2);
 }
 
 /* ============================================
@@ -105,10 +59,6 @@
 }
 
 html {
-  color-scheme: light;
-}
-
-html.dark {
   color-scheme: dark;
 }
 
@@ -121,9 +71,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Title font - Source Serif 4 */
+/* Title font - Lora (elegant, warm, wildlife-appropriate) */
 .font-title {
-  font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
 }
 
 /* ============================================

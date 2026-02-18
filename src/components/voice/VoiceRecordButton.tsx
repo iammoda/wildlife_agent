@@ -91,10 +91,10 @@ export function VoiceRecordButton({
         onTouchStart={startRecording}
         onTouchEnd={stopRecording}
         disabled={disabled}
-        className="p-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
-          backgroundColor: isRecording ? "var(--color-error)" : "var(--color-brand-primary)",
-          color: "white",
+          color: isRecording ? "white" : "var(--color-text-secondary)",
+          backgroundColor: isRecording ? "var(--color-error)" : "transparent",
           transform: isRecording ? "scale(1.05)" : "scale(1)",
           boxShadow: isRecording ? "0 4px 12px rgba(231, 76, 60, 0.3)" : "none"
         }}
@@ -105,18 +105,20 @@ export function VoiceRecordButton({
             <rect x="6" y="6" width="12" height="12" rx="2" />
           </svg>
         ) : (
+          /* Soundwave icon */
           <svg
             className="w-5 h-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            strokeWidth={2}
+            strokeLinecap="round"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-            />
+            <line x1="4" y1="8" x2="4" y2="16" />
+            <line x1="8" y1="6" x2="8" y2="18" />
+            <line x1="12" y1="4" x2="12" y2="20" />
+            <line x1="16" y1="6" x2="16" y2="18" />
+            <line x1="20" y1="8" x2="20" y2="16" />
           </svg>
         )}
       </button>
