@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { SquirrelLogo } from "@/components/ui/SquirrelLogo";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
@@ -30,11 +29,6 @@ export default function LoginPage() {
       className="min-h-screen flex items-center justify-center p-4"
       style={{ backgroundColor: "var(--color-bg-primary)" }}
     >
-      {/* Theme toggle in top-right corner */}
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div
