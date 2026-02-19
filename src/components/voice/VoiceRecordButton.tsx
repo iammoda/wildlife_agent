@@ -85,11 +85,7 @@ export function VoiceRecordButton({
         </div>
       )}
       <button
-        onMouseDown={startRecording}
-        onMouseUp={stopRecording}
-        onMouseLeave={isRecording ? stopRecording : undefined}
-        onTouchStart={startRecording}
-        onTouchEnd={stopRecording}
+        onClick={isRecording ? stopRecording : startRecording}
         disabled={disabled}
         className="p-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
