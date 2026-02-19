@@ -38,7 +38,7 @@ export function GreetingHeader({
           }}
           aria-label="Go home"
         >
-          <SquirrelLogo size={24} />
+          <SquirrelLogo size={42} />
         </button>
         <div>
           <h1

@@ -46,7 +46,7 @@ export default function SettingsPage() {
         <Card variant="bordered" className="space-y-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-soft-mist rounded-full flex items-center justify-center">
-              <SquirrelLogo size={28} />
+              <SquirrelLogo size={35} />
             </div>
             <div>
               <h2 className="font-semibold text-primary-text">{user?.name}</h2>
