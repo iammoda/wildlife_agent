@@ -8,93 +8,16 @@ export function SquirrelLogo({ size = 32, className = "" }: SquirrelLogoProps) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 100 100"
+      viewBox="148.75 115 892.5 690"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      preserveAspectRatio="xMidYMid meet"
     >
-      {/* Squirrel silhouette based on reference - side profile with bushy tail */}
-      
-      {/* Tail - large and bushy, curving upward */}
       <path
-        d="M75 65 
-           C85 55 90 40 85 28 
-           C82 20 75 15 68 18 
-           C62 20 58 28 60 38 
-           C61 45 58 52 55 58"
+        d="M 780.0 409.5 L 585.0 297.5 L 559.5 274.0 L 547.5 254.0 L 541.5 237.0 L 538.5 219.0 L 539.5 194.0 L 551.5 160.0 L 564.5 142.0 L 582.0 126.5 L 617.0 110.5 L 640.0 107.5 L 662.0 109.5 L 698.0 124.5 L 723.5 148.0 L 735.5 168.0 L 743.5 194.0 L 780.0 409.5 Z M 488.0 825.5 L 461.5 824.0 L 460.0 688.5 L 323.0 688.5 L 308.0 685.5 L 290.0 675.5 L 281.5 667.0 L 271.5 649.0 L 268.5 631.0 L 349.0 535.5 L 371.0 525.5 L 391.0 524.5 L 404.0 527.5 L 415.5 506.0 L 432.0 489.5 L 451.0 479.5 L 473.0 475.5 L 475.5 492.0 L 467.5 520.0 L 457.5 535.0 L 439.5 551.0 L 468.0 574.5 L 575.5 446.0 L 599.0 423.5 L 627.0 407.5 L 660.0 399.5 L 687.0 399.5 L 720.0 407.5 L 743.0 419.5 L 771.5 446.0 L 789.5 476.0 L 797.5 503.0 L 798.0 542.5 L 956.0 584.5 L 985.5 627.0 L 981.0 631.5 L 966.0 635.5 L 948.0 633.5 L 932.0 624.5 L 917.0 607.5 L 685.0 649.5 L 663.0 649.5 L 642.0 641.5 L 626.5 627.0 L 617.5 610.0 L 614.0 591.5 L 586.0 591.5 L 585.5 604.0 L 593.5 629.0 L 601.5 643.0 L 617.5 660.0 L 555.5 672.0 L 488.0 825.5 Z M 344.5 613.0 L 355.5 606.0 L 357.5 596.0 L 353.0 587.5 L 347.0 583.5 L 339.0 583.5 L 329.5 591.0 L 327.5 601.0 L 334.0 610.5 L 344.5 613.0 Z M 368.0 825.5 L 341.0 825.5 L 339.5 823.0 L 385.5 715.0 L 389.0 710.5 L 430.0 710.5 L 431.5 755.0 L 368.0 825.5 Z"
         fill="currentColor"
-        opacity="0.95"
-      />
-      
-      {/* Body - rounded and sitting */}
-      <path
-        d="M55 58 
-           C52 50 48 45 42 45 
-           C35 45 28 52 28 62 
-           C28 72 35 78 45 78 
-           C52 78 58 75 60 70 
-           C62 65 58 60 55 58"
-        fill="currentColor"
-      />
-      
-      {/* Head - round with pointed snout */}
-      <path
-        d="M42 45 
-           C42 38 38 32 32 32 
-           C26 32 22 37 22 43 
-           C22 48 25 52 30 54 
-           C35 56 40 52 42 48"
-        fill="currentColor"
-      />
-      
-      {/* Ear - pointed, characteristic squirrel ear */}
-      <path
-        d="M30 32 
-           C28 26 30 20 35 18 
-           C38 17 40 20 39 24 
-           C38 28 35 32 32 34"
-        fill="currentColor"
-      />
-      
-      {/* Snout/Nose area */}
-      <ellipse
-        cx="18"
-        cy="45"
-        rx="4"
-        ry="3"
-        fill="currentColor"
-      />
-      
-      {/* Front leg/paw - holding position */}
-      <path
-        d="M35 62 
-           C32 65 30 70 32 74 
-           C34 76 38 75 40 72"
-        fill="currentColor"
-      />
-      
-      {/* Back leg/foot */}
-      <path
-        d="M52 72 
-           C50 76 52 80 56 82 
-           C60 83 64 80 62 76 
-           C60 73 56 72 52 72"
-        fill="currentColor"
-      />
-      
-      {/* Acorn being held */}
-      <ellipse
-        cx="28"
-        cy="58"
-        rx="5"
-        ry="6"
-        fill="currentColor"
-        opacity="0.85"
-      />
-      <path
-        d="M24 52 C26 50 30 50 32 52 L32 54 C30 53 26 53 24 54 Z"
-        fill="currentColor"
-        opacity="0.7"
+        fillRule="evenodd"
       />
     </svg>
   );
