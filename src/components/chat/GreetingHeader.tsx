@@ -5,11 +5,13 @@ import { SquirrelLogo } from "@/components/ui/SquirrelLogo";
 interface GreetingHeaderProps {
   userName: string;
   onSettingsClick: () => void;
+  onLogoClick: () => void;
 }
 
 export function GreetingHeader({
   userName,
   onSettingsClick,
+  onLogoClick,
 }: GreetingHeaderProps) {
   return (
     <header 
@@ -18,15 +20,26 @@ export function GreetingHeader({
     >
       <div className="flex items-center gap-3">
         {/* Squirrel logo with circular green background */}
-        <div 
-          className="p-2 rounded-full"
+        <button
+          type="button"
+          onClick={onLogoClick}
+          className="p-2 rounded-full transition-all duration-200"
           style={{ 
             backgroundColor: "var(--color-brand-light)",
             color: "var(--color-brand-primary)"
           }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--color-brand-primary)";
+            e.currentTarget.style.color = "var(--color-bg-primary)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--color-brand-light)";
+            e.currentTarget.style.color = "var(--color-brand-primary)";
+          }}
+          aria-label="Go home"
         >
           <SquirrelLogo size={24} />
-        </div>
+        </button>
         <div>
           <h1
             className="text-base font-semibold"

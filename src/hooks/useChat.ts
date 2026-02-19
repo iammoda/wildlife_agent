@@ -191,6 +191,11 @@ export function useChat() {
     [addMessage]
   );
 
+  const clearMessages = useCallback(() => {
+    setMessages([]);
+    setIsProcessing(false);
+  }, []);
+
   return {
     messages,
     isProcessing,
@@ -199,5 +204,6 @@ export function useChat() {
     sendDocumentCapture,
     saveIntake,
     addMessage,
+    clearMessages,
   };
 }

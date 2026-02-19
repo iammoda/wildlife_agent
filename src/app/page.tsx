@@ -25,6 +25,7 @@ export default function HomePage() {
     sendVoiceMessage,
     sendDocumentCapture,
     saveIntake,
+    clearMessages,
   } = useChat();
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingIntake, setEditingIntake] = useState<ParsedIntake | null>(
@@ -81,6 +82,10 @@ export default function HomePage() {
     router.push("/settings");
   };
 
+  const handleLogoClick = () => {
+    clearMessages();
+  };
+
   const isInChatMode = messages.length > 0;
 
   // Welcome mode - greeting and input are grouped together in center
@@ -120,6 +125,7 @@ export default function HomePage() {
       <GreetingHeader
         userName={user.name}
         onSettingsClick={handleSettingsClick}
+        onLogoClick={handleLogoClick}
       />
       
       <ChatView
