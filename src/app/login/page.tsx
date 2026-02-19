@@ -1,21 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SquirrelLogo } from "@/components/ui/SquirrelLogo";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
   const [isRegistering, setIsRegistering] = useState(false);
   const [showConfirmationNotice, setShowConfirmationNotice] = useState(false);
 
   const handleSuccess = () => {
-    router.push("/");
+    router.replace("/");
     router.refresh();
   };
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace("/");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   return (
     <div
