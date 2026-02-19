@@ -3,10 +3,16 @@ import { openai } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import {
+  CARE_LOG_PARSING_PROMPT,
   INTENT_CLASSIFICATION_PROMPT,
   GENERAL_QUESTION_PROMPT,
 } from "@/lib/prompts";
-import { ClassifiedIntent, ChatResponse, IntentType } from "@/lib/types";
+import {
+  ClassifiedIntent,
+  ChatResponse,
+  IntentType,
+  ParsedCareLog,
+} from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,10 +82,7 @@ async function handleIntent(
     case "find_animal":
       return await handleFindAnimal(intent.params, userId);
     case "add_care_log":
-      return {
-        message:
-          "I can help you add a care log. Please include the intake number and details like weight, food fed, and any medications.",
-      };
+      return await handleAddCareLog(intent.params, originalMessage, userId);
     case "view_care_logs":
       return await handleViewCareLogs(intent.params, userId);
     case "statistics":
@@ -137,6 +140,94 @@ async function handleFindAnimal(
     embedded: {
       type: "animal_record_full",
       data: intake,
+    },
+  };
+}
+
+async function handleAddCareLog(
+  params: Record<string, unknown>,
+  originalMessage: string,
+  userId: string
+): Promise<ChatResponse> {
+  const providedIntakeNumber = params.intake_number as string | undefined;
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: CARE_LOG_PARSING_PROMPT },
+      { role: "user", content: originalMessage },
+    ],
+    response_format: { type: "json_object" },
+    max_tokens: 1024,
+  });
+
+  const content = response.choices[0]?.message?.content || "{}";
+  let parsed: ParsedCareLog;
+
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    return {
+      message:
+        "I couldn't parse that care log. Please include the intake number and care details like weight, food, and medications.",
+    };
+  }
+
+  if ((parsed as { error?: string }).error) {
+    return {
+      message:
+        (parsed as { error?: string }).error ||
+        "Please provide the intake number for this care log.",
+    };
+  }
+
+  const intakeNumber = parsed.intake_number || providedIntakeNumber;
+  if (!intakeNumber) {
+    return {
+      message:
+        "Please provide the intake number for this care log so I can save it.",
+    };
+  }
+
+  const { data: intake, error: lookupError } = await supabaseAdmin
+    .from("intakes")
+    .select("id, intake_number")
+    .eq("user_id", userId)
+    .ilike("intake_number", `%${intakeNumber}%`)
+    .single();
+
+  if (lookupError || !intake) {
+    return {
+      message: `I couldn't find an intake matching "${intakeNumber}". Please check the number and try again.`,
+    };
+  }
+
+  const logDate = parsed.log_date || new Date().toISOString();
+
+  const { data: log, error } = await supabaseAdmin
+    .from("daily_care_logs")
+    .insert({
+      user_id: userId,
+      intake_id: intake.id,
+      log_date: logDate,
+      weight: parsed.weight,
+      food_fed: parsed.food_fed,
+      amount: parsed.amount,
+      meds_and_comments: parsed.meds_and_comments,
+    })
+    .select()
+    .single();
+
+  if (error || !log) {
+    return {
+      message: "Failed to save the care log. Please try again.",
+    };
+  }
+
+  return {
+    message: `Care log added for patient ${intake.intake_number}.`,
+    embedded: {
+      type: "care_logs",
+      data: [log],
     },
   };
 }

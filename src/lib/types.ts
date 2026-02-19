@@ -82,7 +82,22 @@ export interface ParsedIntake {
   confidence?: number | null;
 }
 
+/**
+ * Response from /api/parse-intake endpoint.
+ * Includes validation results for required fields.
+ */
+export interface ParseIntakeResponse {
+  /** The parsed intake data */
+  parsed: ParsedIntake;
+  /** Labels of missing required fields (e.g., ["Species", "Finder Phone"]) */
+  missingFields: string[];
+  /** True if all required fields are present */
+  isComplete: boolean;
+}
+
 export interface ParsedCareLog {
+  intake_number?: string | null;
+  intake_id?: string | null;
   log_date?: string | null;
   weight?: string | null;
   food_fed?: string | null;

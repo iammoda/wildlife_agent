@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase/server";
 import { CARE_LOG_PARSING_PROMPT } from "@/lib/prompts";
 import { ParsedCareLog } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth();
+    const session = await requireAuth();
     const { text } = await request.json();
 
     if (!text) {
@@ -38,9 +39,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if ((parsed as { error?: string }).error) {
+      return NextResponse.json({
+        success: false,
+        error: (parsed as { error?: string }).error,
+      });
+    }
+
+    if (!parsed.intake_number) {
+      return NextResponse.json({
+        success: false,
+        error:
+          "No intake number found in message. Please specify which patient.",
+      });
+    }
+
+    const { data: intake, error: lookupError } = await supabaseAdmin
+      .from("intakes")
+      .select("id, intake_number")
+      .eq("user_id", session.userId)
+      .ilike("intake_number", `%${parsed.intake_number}%`)
+      .single();
+
+    if (lookupError || !intake) {
+      return NextResponse.json({
+        success: false,
+        error: `Could not find intake matching "${parsed.intake_number}". Please check the number.`,
+      });
+    }
+
     if (!parsed.log_date) {
       parsed.log_date = new Date().toISOString();
     }
+
+    parsed.intake_id = intake.id;
+    parsed.intake_number = intake.intake_number;
 
     return NextResponse.json({
       success: true,

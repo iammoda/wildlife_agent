@@ -1,81 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase/server";
-import { INTAKE_PARSING_PROMPT } from "@/lib/prompts";
-import { incrementIntakeNumber } from "@/lib/utils";
-import { ParsedIntake } from "@/lib/types";
+import { INTAKE_MERGE_PROMPT } from "@/lib/prompts";
 import { REQUIRED_INTAKE_FIELDS } from "@/lib/constants";
+import { ParsedIntake } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireAuth();
-    const { text } = await request.json();
+    await requireAuth();
+    const { existingIntake, additionalText } = await request.json();
 
-    if (!text) {
+    if (!existingIntake || !additionalText) {
       return NextResponse.json(
-        { success: false, error: "No text provided" },
+        { success: false, error: "Missing existingIntake or additionalText" },
         { status: 400 }
       );
     }
 
-    const { data: settings } = await supabaseAdmin
-      .from("user_settings")
-      .select("last_intake_number")
-      .eq("user_id", session.userId)
-      .single();
+    const prompt = INTAKE_MERGE_PROMPT.replace(
+      "{existingIntake}",
+      JSON.stringify(existingIntake, null, 2)
+    ).replace("{additionalText}", additionalText);
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: INTAKE_PARSING_PROMPT },
-        { role: "user", content: text },
+        { role: "system", content: prompt },
+        { role: "user", content: additionalText },
       ],
       response_format: { type: "json_object" },
       max_tokens: 2048,
     });
 
     const content = response.choices[0]?.message?.content || "{}";
-    let parsed: ParsedIntake;
+    let merged: ParsedIntake;
 
     try {
-      parsed = JSON.parse(content);
+      merged = JSON.parse(content);
     } catch {
       return NextResponse.json(
-        { success: false, error: "Failed to parse response" },
+        { success: false, error: "Failed to parse merged response" },
         { status: 500 }
       );
     }
 
-    if (!parsed.intake_number) {
-      if (settings?.last_intake_number) {
-        parsed.intake_number = incrementIntakeNumber(
-          settings.last_intake_number
-        );
-      } else {
-        parsed.intake_number = "";
-      }
-    }
-
-    if (!parsed.intake_date) {
-      parsed.intake_date = new Date().toISOString();
-    }
-
     const missingFields = REQUIRED_INTAKE_FIELDS.filter((field) => {
-      const value = parsed[field.key as keyof typeof parsed];
+      const value = merged[field.key as keyof typeof merged];
       return value === null || value === undefined || value === "";
     }).map((field) => field.label);
 
     return NextResponse.json({
       success: true,
       data: {
-        parsed,
+        parsed: merged,
         missingFields,
         isComplete: missingFields.length === 0,
       },
     });
   } catch (error) {
-    console.error("Parse intake error:", error);
+    console.error("Merge intake error:", error);
 
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json(
@@ -85,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: "Failed to parse intake" },
+      { success: false, error: "Failed to merge intake data" },
       { status: 500 }
     );
   }

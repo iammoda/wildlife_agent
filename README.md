@@ -1,36 +1,304 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wildlife Intake
+
+A modern web application for wildlife rehabilitation centers to track animal intakes, care logs, and outcomes. Features an AI-powered conversational interface that allows rehabilitators to record intakes through natural language, voice recordings, or document scanning.
+
+## Features
+
+### AI-Powered Chat Interface
+- **Natural Language Processing** - Describe intakes conversationally ("I found an injured squirrel in Central Park")
+- **Intent Classification** - Automatically detects what you're trying to do
+- **Context-Aware Responses** - Understands follow-up questions and provides relevant information
+
+### Multi-Modal Input
+- **Text Chat** - Type messages naturally
+- **Voice Recording** - Press-and-hold to record, automatically transcribed via OpenAI Whisper
+- **Document Scanning** - Capture paper intake forms with your camera, OCR powered by GPT-4o Vision
+
+### Intake Management
+- Create, view, edit, and delete animal intakes
+- Auto-incrementing intake numbers (YYYY-NNN format)
+- Track species, quantity, sex, finder information, and location
+- Disposition tracking (Under Care, Released, Transferred, etc.)
+
+### Care Logging
+- Daily weight tracking
+- Food and feeding records
+- Medication and treatment notes
+
+### Analytics Dashboard
+- Total intakes and animals under care
+- Weekly/monthly intake statistics
+- Species-filtered analytics
+- Visual charts (bar, line, pie)
+
+## Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS 4 |
+| Database | Supabase (PostgreSQL) |
+| Auth | Supabase Auth |
+| AI | OpenAI GPT-4o, Whisper |
+| Charts | Recharts |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- npm or yarn
+- Supabase account
+- OpenAI API key
+
+### Environment Setup
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/your-repo/wildlife-intake-web.git
+cd wildlife-intake-web
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Create a `.env.local` file based on `.env.example`:
+```env
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+OPENAI_API_KEY=your_openai_api_key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Set up your Supabase database (see Database Schema below)
 
-## Learn More
+5. Run the development server:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Open [http://localhost:3000](http://localhost:3000)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Database Schema
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Set up the following tables in your Supabase project:
 
-## Deploy on Vercel
+### `intakes`
+```sql
+create table intakes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id),
+  intake_number text unique,
+  species text,
+  quantity integer default 1,
+  sex text,
+  intake_date timestamp with time zone default now(),
+  intake_reason text,
+  found_location text,
+  finder_name text,
+  finder_phone text,
+  how_description text,
+  distress_code text,
+  distress_subcode text,
+  disposition text default 'UC',
+  disposition_date timestamp with time zone,
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### `patient_exams`
+```sql
+create table patient_exams (
+  id uuid primary key default gen_random_uuid(),
+  intake_id uuid references intakes(id) on delete cascade,
+  exam_date timestamp with time zone default now(),
+  weight text,
+  age text,
+  notes text,
+  created_at timestamp with time zone default now()
+);
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### `daily_care_logs`
+```sql
+create table daily_care_logs (
+  id uuid primary key default gen_random_uuid(),
+  intake_id uuid references intakes(id) on delete cascade,
+  log_date timestamp with time zone default now(),
+  weight text,
+  food text,
+  feeding_notes text,
+  medications text,
+  notes text,
+  created_at timestamp with time zone default now()
+);
+```
+
+### `dispositions`
+```sql
+create table dispositions (
+  id uuid primary key default gen_random_uuid(),
+  intake_id uuid references intakes(id) on delete cascade,
+  disposition_code text,
+  disposition_date timestamp with time zone,
+  release_location text,
+  transfer_destination text,
+  notes text,
+  created_at timestamp with time zone default now()
+);
+```
+
+### `user_settings`
+```sql
+create table user_settings (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) unique,
+  last_intake_number text,
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+```
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   │   ├── analytics/     # Dashboard statistics
+│   │   ├── auth/          # Authentication endpoints
+│   │   ├── chat/          # AI chat processing
+│   │   ├── extract-document/  # Document OCR
+│   │   ├── intakes/       # Intake CRUD
+│   │   ├── parse-care-log/    # AI care log parsing
+│   │   ├── parse-intake/  # AI intake parsing
+│   │   └── transcribe/    # Voice transcription
+│   ├── login/             # Login page
+│   ├── settings/          # Settings page
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Main chat interface
+├── components/
+│   ├── analytics/         # Charts and statistics
+│   ├── auth/              # Login/register forms
+│   ├── chat/              # Chat interface
+│   ├── intake/            # Intake management
+│   ├── ui/                # Reusable UI components
+│   └── voice/             # Voice/document capture
+├── hooks/                 # Custom React hooks
+│   ├── useAuth.ts         # Authentication state
+│   ├── useChat.ts         # Chat functionality
+│   ├── useSummary.ts      # Dashboard stats
+│   └── useTheme.ts        # Theme management
+└── lib/                   # Utilities
+    ├── auth.ts            # Server auth helpers
+    ├── constants.ts       # App constants
+    ├── openai.ts          # OpenAI client
+    ├── prompts.ts         # AI prompts
+    ├── supabase/          # Supabase clients
+    ├── types.ts           # TypeScript types
+    └── utils.ts           # Utility functions
+```
+
+## API Routes
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/login` | POST | User login |
+| `/api/auth/register` | POST | User registration |
+| `/api/auth/logout` | POST | User logout |
+| `/api/auth/me` | GET | Get current user |
+| `/api/chat` | POST | Process chat messages |
+| `/api/transcribe` | POST | Voice-to-text transcription |
+| `/api/extract-document` | POST | Document OCR |
+| `/api/parse-intake` | POST | Parse intake from text |
+| `/api/parse-care-log` | POST | Parse care log from text |
+| `/api/intakes` | GET | List all intakes |
+| `/api/intakes` | POST | Create new intake |
+| `/api/intakes/[id]` | GET | Get single intake |
+| `/api/intakes/[id]` | PUT | Update intake |
+| `/api/intakes/[id]` | DELETE | Delete intake |
+| `/api/intakes/[id]/logs` | GET | Get care logs |
+| `/api/intakes/[id]/logs` | POST | Add care log |
+| `/api/intakes/next-number` | GET | Get next intake number |
+| `/api/analytics/summary` | GET | Dashboard statistics |
+
+## Scripts
+
+```bash
+# Development with type checking
+npm run dev
+
+# Production build
+npm run build
+
+# Start production server
+npm start
+
+# Type checking (watch mode)
+npm run typecheck:watch
+```
+
+## AI Intent Classification
+
+The chat system classifies user messages into these intents:
+
+| Intent | Description | Example |
+|--------|-------------|---------|
+| `new_intake` | Create new animal intake | "I found an injured hawk" |
+| `find_animal` | Look up existing records | "Find the squirrel from yesterday" |
+| `add_care_log` | Log daily care | "Update weight to 250g for 2024-042" |
+| `view_care_logs` | View care history | "Show care logs for the raccoon" |
+| `statistics` | Query analytics | "How many birds this month?" |
+| `help` | Get assistance | "What can you help me with?" |
+| `general_question` | Wildlife questions | "What do baby opossums eat?" |
+
+## Disposition Codes
+
+| Code | Description |
+|------|-------------|
+| UC | Under Care |
+| REL | Released |
+| TRN | Transferred |
+| DOA | Dead on Arrival |
+| EUTH | Euthanized |
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Push your code to GitHub
+2. Connect your repository to [Vercel](https://vercel.com)
+3. Add environment variables in Vercel dashboard
+4. Deploy
+
+### Other Platforms
+
+The app can be deployed to any platform that supports Next.js:
+- AWS Amplify
+- Netlify
+- Railway
+- Self-hosted with Node.js
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/)
+- Database powered by [Supabase](https://supabase.com/)
+- AI powered by [OpenAI](https://openai.com/)
+- Charts by [Recharts](https://recharts.org/)

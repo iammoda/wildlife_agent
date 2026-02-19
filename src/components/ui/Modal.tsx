@@ -32,14 +32,27 @@ export function Modal({
         onClick={onClose}
       />
       <div
-        className={`relative w-full ${sizeStyles[size]} bg-white rounded-2xl shadow-xl`}
+        className={`relative w-full ${sizeStyles[size]} rounded-2xl shadow-xl`}
+        style={{
+          backgroundColor: "var(--color-bg-elevated)",
+          border: "1px solid var(--color-border)",
+        }}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-soft-mist">
-            <h2 className="text-lg font-semibold text-primary-text">{title}</h2>
+          <div
+            className="flex items-center justify-between px-6 py-4 border-b"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <h2
+              className="text-lg font-semibold"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {title}
+            </h2>
             <button
               onClick={onClose}
-              className="p-1 text-secondary-text hover:text-primary-text transition-colors"
+              className="p-1 transition-colors hover:opacity-80"
+              style={{ color: "var(--color-text-secondary)" }}
             >
               <svg
                 className="w-5 h-5"

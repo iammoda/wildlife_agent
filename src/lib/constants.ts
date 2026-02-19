@@ -31,3 +31,51 @@ export const DISPOSITION_CODES = {
     isPositive: false,
   },
 } as const;
+
+/**
+ * Required fields for a complete intake record.
+ * Used for validation in parse-intake API and UI display.
+ */
+export const REQUIRED_INTAKE_FIELDS = [
+  { key: "species", label: "Species" },
+  { key: "intake_reason", label: "Intake Reason" },
+  { key: "found_location", label: "Found Location" },
+  { key: "finder_name", label: "Finder Name" },
+  { key: "finder_phone", label: "Finder Phone" },
+] as const;
+
+/**
+ * Voice commands that trigger saving the pending intake.
+ * Matched case-insensitively against transcribed text.
+ */
+export const VOICE_SAVE_COMMANDS = [
+  "save",
+  "save intake",
+  "save it",
+  "confirm",
+  "submit",
+  "done",
+  "that's it",
+  "looks good",
+];
+
+/**
+ * Voice commands that cancel/clear the pending intake.
+ * Matched case-insensitively against transcribed text.
+ */
+export const VOICE_CANCEL_COMMANDS = [
+  "cancel",
+  "cancel intake",
+  "start over",
+  "never mind",
+  "nevermind",
+  "forget it",
+  "clear",
+  "reset",
+];
+
+/**
+ * Maximum voice recording duration in seconds.
+ * Recording auto-stops when this limit is reached.
+ */
+export const MAX_RECORDING_SECONDS = 60;

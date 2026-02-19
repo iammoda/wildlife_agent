@@ -58,13 +58,16 @@ export function IntakeEditModal({
             onChange={(e) => handleChange("quantity", parseInt(e.target.value))}
           />
           <div>
-            <label className="block text-sm font-medium text-primary-text mb-1.5">
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "var(--color-text-primary)" }}
+            >
               Sex
             </label>
             <select
               value={formData.sex || "Unknown"}
               onChange={(e) => handleChange("sex", e.target.value)}
-              className="w-full px-4 py-2.5 bg-white border border-soft-mist rounded-xl text-primary-text focus:outline-none focus:ring-2 focus:ring-wildlife-green"
+              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none"
             >
               {SEX_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -74,13 +77,16 @@ export function IntakeEditModal({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-primary-text mb-1.5">
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "var(--color-text-primary)" }}
+            >
               Intake Reason
             </label>
             <select
               value={formData.intake_reason || "Unknown"}
               onChange={(e) => handleChange("intake_reason", e.target.value)}
-              className="w-full px-4 py-2.5 bg-white border border-soft-mist rounded-xl text-primary-text focus:outline-none focus:ring-2 focus:ring-wildlife-green"
+              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none"
             >
               {INTAKE_REASON_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -133,7 +139,10 @@ export function IntakeEditModal({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-primary-text mb-1.5">
+          <label
+            className="block text-sm font-medium mb-1.5"
+            style={{ color: "var(--color-text-primary)" }}
+          >
             Description
           </label>
           <textarea
@@ -141,7 +150,7 @@ export function IntakeEditModal({
             onChange={(e) => handleChange("how_description", e.target.value)}
             placeholder="How was the animal found? What happened?"
             rows={3}
-            className="w-full px-4 py-2.5 bg-white border border-soft-mist rounded-xl text-primary-text placeholder-secondary-text focus:outline-none focus:ring-2 focus:ring-wildlife-green resize-none"
+            className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-none"
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">

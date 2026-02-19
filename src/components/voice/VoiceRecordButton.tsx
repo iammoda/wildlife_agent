@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { MAX_RECORDING_SECONDS } from "@/lib/constants";
 
 interface VoiceRecordButtonProps {
   onRecordComplete: (audioBlob: Blob) => void;
@@ -16,19 +17,29 @@ export function VoiceRecordButton({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
     };
   }, []);
 
-  const startRecording = async () => {
+  const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      streamRef.current = stream;
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "audio/mp4";
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
       mediaRecorder.ondataavailable = (e) => {
@@ -37,9 +48,12 @@ export function VoiceRecordButton({
         }
       };
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const audioBlob = new Blob(chunksRef.current, { type: mimeType });
         onRecordComplete(audioBlob);
-        stream.getTracks().forEach((track) => track.stop());
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
       };
       mediaRecorder.start();
       setIsRecording(true);
@@ -51,9 +65,9 @@ export function VoiceRecordButton({
       console.error("Failed to start recording:", error);
       alert("Could not access microphone. Please check your permissions.");
     }
-  };
+  }, [onRecordComplete]);
 
-  const stopRecording = () => {
+  const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -61,6 +75,21 @@ export function VoiceRecordButton({
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+    }
+  }, [isRecording]);
+
+  useEffect(() => {
+    if (isRecording && duration >= MAX_RECORDING_SECONDS) {
+      stopRecording();
+    }
+  }, [duration, isRecording, stopRecording]);
+
+  const handleClick = () => {
+    if (disabled) return;
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
     }
   };
 
@@ -70,29 +99,38 @@ export function VoiceRecordButton({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const remainingTime = MAX_RECORDING_SECONDS - duration;
+  const showWarning = isRecording && remainingTime <= 15;
+  const isUrgent = isRecording && remainingTime <= 5;
+
   return (
     <div className="relative">
       {isRecording && (
-        <div 
-          className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded-full text-xs font-mono"
-          style={{ 
-            backgroundColor: "var(--color-bg-elevated)",
-            color: "var(--color-text-secondary)",
-            boxShadow: "var(--shadow-sm)"
+        <div
+          className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded-full text-xs font-mono whitespace-nowrap"
+          style={{
+            backgroundColor: isUrgent
+              ? "var(--color-error)"
+              : showWarning
+              ? "#B45309"
+              : "var(--color-bg-elevated)",
+            color: showWarning ? "white" : "var(--color-text-secondary)",
+            boxShadow: "var(--shadow-sm)",
           }}
         >
-          {formatDuration(duration)}
+          {showWarning ? `${remainingTime}s left` : formatDuration(duration)}
         </div>
       )}
+
       <button
-        onClick={isRecording ? stopRecording : startRecording}
+        onClick={handleClick}
         disabled={disabled}
         className="p-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
           color: isRecording ? "white" : "var(--color-text-secondary)",
           backgroundColor: isRecording ? "var(--color-error)" : "transparent",
           transform: isRecording ? "scale(1.05)" : "scale(1)",
-          boxShadow: isRecording ? "0 4px 12px rgba(231, 76, 60, 0.3)" : "none"
+          boxShadow: isRecording ? "0 4px 12px rgba(231, 76, 60, 0.3)" : "none",
         }}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
       >
@@ -101,7 +139,6 @@ export function VoiceRecordButton({
             <rect x="6" y="6" width="12" height="12" rx="2" />
           </svg>
         ) : (
-          /* Soundwave icon */
           <svg
             className="w-5 h-5"
             fill="none"
