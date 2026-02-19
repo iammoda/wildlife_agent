@@ -51,12 +51,9 @@ export function WelcomeView({ userName, onSettingsClick }: WelcomeViewProps) {
       {/* Greeting content - centered */}
       <div className="flex flex-col items-center mb-6">
         {/* Squirrel icon */}
-        <div 
-          className="mb-4 p-[18px] rounded-full"
-          style={{ 
-            backgroundColor: "var(--color-brand-light)",
-            color: "var(--color-brand-primary)"
-          }}
+        <div
+          className="mb-4"
+          style={{ color: "var(--color-brand-primary)" }}
         >
           <SquirrelLogo size={94.5} />
         </div>

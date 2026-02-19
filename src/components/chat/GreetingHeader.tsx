@@ -19,21 +19,15 @@ export function GreetingHeader({
       style={{ backgroundColor: "var(--color-bg-primary)" }}
     >
       <div className="flex items-center gap-3">
-        {/* Squirrel logo with circular green background */}
         <button
           type="button"
           onClick={onLogoClick}
-          className="p-2 rounded-full transition-all duration-200"
-          style={{ 
-            backgroundColor: "var(--color-brand-light)",
-            color: "var(--color-brand-primary)"
-          }}
+          className="p-1 transition-colors duration-200"
+          style={{ color: "var(--color-brand-primary)" }}
           onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--color-brand-primary)";
-            e.currentTarget.style.color = "var(--color-bg-primary)";
+            e.currentTarget.style.color = "var(--color-brand-accent)";
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--color-brand-light)";
             e.currentTarget.style.color = "var(--color-brand-primary)";
           }}
           aria-label="Go home"

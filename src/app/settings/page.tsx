@@ -123,8 +123,8 @@ export default function SettingsPage() {
         <Card variant="bordered" className="space-y-4">
           <div className="flex items-center gap-4">
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: "var(--color-brand-light)" }}
+              className="w-12 h-12 flex items-center justify-center"
+              style={{ color: "var(--color-brand-primary)" }}
             >
               <SquirrelLogo size={35} />
             </div>
