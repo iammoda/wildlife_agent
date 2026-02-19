@@ -52,13 +52,13 @@ export function WelcomeView({ userName, onSettingsClick }: WelcomeViewProps) {
       <div className="flex flex-col items-center mb-6">
         {/* Squirrel icon */}
         <div 
-          className="mb-4 p-3 rounded-full"
+          className="mb-4 p-[18px] rounded-full"
           style={{ 
             backgroundColor: "var(--color-brand-light)",
             color: "var(--color-brand-primary)"
           }}
         >
-          <SquirrelLogo size={36} />
+          <SquirrelLogo size={94.5} />
         </div>
         
         {/* Greeting - Lora font */}
