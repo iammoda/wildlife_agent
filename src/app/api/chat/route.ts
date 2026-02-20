@@ -26,8 +26,12 @@ import {
   QuickStatusItem,
 } from "@/lib/types";
 import {
-  DISPOSITION_UNDER_CARE,
+  DISPOSITION_PERM_NON_RELEASABLE,
   DISPOSITION_RELEASED,
+  DISPOSITION_UNDER_CASE,
+  getDispositionInfo,
+  isCurrentlyInCare,
+  normalizeDisposition,
 } from "@/lib/constants";
 
 const CONTEXT_COOKIE_NAME = "wildlife_chat_context";
@@ -49,6 +53,40 @@ function injectDateTime(prompt: string): string {
     timeZoneName: "short",
   });
   return prompt.replace("{CURRENT_DATETIME}", dateTimeStr);
+}
+
+function getIntakeDispositionCode(intake: any): unknown {
+  if (intake?.disposition) {
+    return intake.disposition;
+  }
+
+  const dispositions = intake?.dispositions;
+  if (Array.isArray(dispositions)) {
+    return dispositions[0]?.disposition_code;
+  }
+  return dispositions?.disposition_code;
+}
+
+function getRequestedStatusFilter(
+  params: Record<string, unknown>
+): string | undefined {
+  const raw =
+    (params.status_filter as string | undefined) ||
+    (params.status as string | undefined) ||
+    (params.disposition as string | undefined);
+
+  if (!raw || typeof raw !== "string" || !raw.trim()) {
+    return undefined;
+  }
+
+  return normalizeDisposition(raw);
+}
+
+function isUnderCareStatus(statusCode: string): boolean {
+  return (
+    statusCode === DISPOSITION_UNDER_CASE ||
+    statusCode === DISPOSITION_PERM_NON_RELEASABLE
+  );
 }
 
 type ParsedCareLogWithError = ParsedCareLog & { error?: string };
@@ -409,7 +447,9 @@ async function handleIntent(
     case "delete_intake":
       return await handleDeleteIntake(intent.params, userId, context);
     case "list_animals_in_care":
-      return await handleListAnimalsInCare(userId);
+      return await handleListAnimalsInCare(intent.params, userId);
+    case "list_all_intakes":
+      return await handleListAllIntakes(intent.params, userId);
     case "update_care_log":
       return await handleUpdateCareLog(
         intent.params,
@@ -436,6 +476,7 @@ async function handleIntent(
 • **Update intakes** - Say "change finder phone on intake [number]"
 • **Delete intakes** - Say "delete intake [intake number]"
 • **List animals under care** - Say "show current intakes"
+• **List all intakes** - Say "show all intakes"
 • **Update care logs** - Say "update care log for [number]"
 • **Delete care logs** - Say "delete care log for [number]"
 • **Quick status** - Say "status" or "daily check"
@@ -1003,6 +1044,10 @@ async function handleUpdateIntake(
     }
   }
 
+  if ("disposition" in fieldsToUpdate) {
+    fieldsToUpdate.disposition = normalizeDisposition(fieldsToUpdate.disposition);
+  }
+
   if (Object.keys(fieldsToUpdate).length === 0) {
     return {
       response: {
@@ -1110,12 +1155,15 @@ async function handleDeleteIntake(
 }
 
 async function handleListAnimalsInCare(
+  params: Record<string, unknown>,
   userId: string
 ): Promise<HandlerResult> {
+  const statusFilter = getRequestedStatusFilter(params);
+
   const { data: intakes } = await supabaseAdmin
     .from("intakes")
     .select(
-      "id, intake_number, species, intake_reason, intake_date, quantity, sex, dispositions (disposition_code)"
+      "id, intake_number, species, intake_reason, intake_date, quantity, sex, disposition, dispositions (disposition_code)"
     )
     .eq("user_id", userId)
     .order("intake_date", { ascending: false });
@@ -1129,16 +1177,9 @@ async function handleListAnimalsInCare(
     };
   }
 
-  const underCare = intakes.filter((intake: any) => {
-    const disposition = Array.isArray(intake.dispositions)
-      ? intake.dispositions[0]
-      : intake.dispositions;
-    return (
-      !disposition ||
-      !disposition.disposition_code ||
-      disposition.disposition_code === DISPOSITION_UNDER_CARE
-    );
-  });
+  const underCare = intakes.filter((intake: any) =>
+    isCurrentlyInCare(getIntakeDispositionCode(intake))
+  );
 
   if (underCare.length === 0) {
     return {
@@ -1149,18 +1190,159 @@ async function handleListAnimalsInCare(
     };
   }
 
+  if (statusFilter && !isUnderCareStatus(statusFilter)) {
+    const statusName = getDispositionInfo(statusFilter).shortTitle;
+    return {
+      response: {
+        message: `No under-care animals with ${statusName} status. Under-care statuses are Under Case and Permanently Non Releasable.`,
+        embedded: {
+          type: "animals_list",
+          data: {
+            items: [],
+            mode: "under_care",
+            statusFilter: statusName,
+          },
+        },
+      },
+      newContext: {
+        lastIntent: "list_animals_in_care",
+      },
+    };
+  }
+
+  const filtered = statusFilter
+    ? underCare.filter(
+        (intake: any) =>
+          normalizeDisposition(getIntakeDispositionCode(intake)) === statusFilter
+      )
+    : underCare;
+
+  if (filtered.length === 0) {
+    const statusName = statusFilter
+      ? getDispositionInfo(statusFilter).shortTitle
+      : undefined;
+
+    return {
+      response: {
+        message: statusName
+          ? `No under-care animals found with ${statusName} status.`
+          : "No animals currently under care.",
+        embedded: {
+          type: "animals_list",
+          data: {
+            items: [],
+            mode: "under_care",
+            statusFilter: statusName,
+          },
+        },
+      },
+      newContext: {
+        lastIntent: "list_animals_in_care",
+      },
+    };
+  }
+
   return {
     response: {
-      message: `You have ${underCare.length} animal${
-        underCare.length === 1 ? "" : "s"
-      } currently under care:`,
+      message: statusFilter
+        ? `You have ${filtered.length} under-care animal${
+            filtered.length === 1 ? "" : "s"
+          } with ${getDispositionInfo(statusFilter).shortTitle} status:`
+        : `You have ${filtered.length} animal${
+            filtered.length === 1 ? "" : "s"
+          } currently under care:`,
       embedded: {
         type: "animals_list",
-        data: underCare,
+        data: {
+          items: filtered,
+          mode: "under_care",
+          statusFilter: statusFilter
+            ? getDispositionInfo(statusFilter).shortTitle
+            : undefined,
+        },
       },
     },
     newContext: {
       lastIntent: "list_animals_in_care",
+    },
+  };
+}
+
+async function handleListAllIntakes(
+  params: Record<string, unknown>,
+  userId: string
+): Promise<HandlerResult> {
+  const statusFilter = getRequestedStatusFilter(params);
+
+  const { data: intakes } = await supabaseAdmin
+    .from("intakes")
+    .select(
+      "id, intake_number, species, intake_reason, intake_date, quantity, sex, disposition, dispositions (disposition_code)"
+    )
+    .eq("user_id", userId)
+    .order("intake_date", { ascending: false });
+
+  if (!intakes || intakes.length === 0) {
+    return {
+      response: {
+        message:
+          "You don't have any intakes yet. Say 'new intake' to record your first animal.",
+      },
+    };
+  }
+
+  const filtered = statusFilter
+    ? intakes.filter(
+        (intake: any) =>
+          normalizeDisposition(getIntakeDispositionCode(intake)) === statusFilter
+      )
+    : intakes;
+
+  const statusName = statusFilter
+    ? getDispositionInfo(statusFilter).shortTitle
+    : undefined;
+
+  if (filtered.length === 0) {
+    return {
+      response: {
+        message: statusName
+          ? `No intakes found with ${statusName} status.`
+          : "No intakes found.",
+        embedded: {
+          type: "animals_list",
+          data: {
+            items: [],
+            mode: "all_intakes",
+            statusFilter: statusName,
+          },
+        },
+      },
+      newContext: {
+        lastIntent: "list_all_intakes",
+      },
+    };
+  }
+
+  return {
+    response: {
+      message: statusName
+        ? `Here are ${filtered.length} intake${
+            filtered.length === 1 ? "" : "s"
+          } with ${statusName} status:`
+        : `Here are all ${filtered.length} intake${
+            filtered.length === 1 ? "" : "s"
+          }:`,
+      embedded: {
+        type: "animals_list",
+        data: {
+          items: filtered,
+          mode: "all_intakes",
+          statusFilter: statusName,
+        },
+      },
+    },
+    newContext: {
+      lastIntent: "list_all_intakes",
     },
   };
 }
@@ -1556,6 +1738,7 @@ async function handleQuickStatus(userId: string): Promise<HandlerResult> {
       id,
       intake_number,
       species,
+      disposition,
       daily_care_logs (
         log_date,
         weight
@@ -1577,16 +1760,9 @@ async function handleQuickStatus(userId: string): Promise<HandlerResult> {
     };
   }
 
-  const underCare = intakes.filter((intake: any) => {
-    const disposition = Array.isArray(intake.dispositions)
-      ? intake.dispositions[0]
-      : intake.dispositions;
-    return (
-      !disposition ||
-      !disposition.disposition_code ||
-      disposition.disposition_code === DISPOSITION_UNDER_CARE
-    );
-  });
+  const underCare = intakes.filter((intake: any) =>
+    isCurrentlyInCare(getIntakeDispositionCode(intake))
+  );
 
   if (underCare.length === 0) {
     return {
@@ -1669,7 +1845,7 @@ async function handleStatistics(
 
   let query = supabaseAdmin
     .from("intakes")
-    .select("*, dispositions(*)")
+    .select("*, dispositions(disposition_code)")
     .eq("user_id", userId);
 
   if (speciesFilter) {
@@ -1694,13 +1870,10 @@ async function handleStatistics(
     0
   );
   const underCare = intakes.filter(
-    (i: any) =>
-      !i.dispositions ||
-      i.dispositions.disposition_code === DISPOSITION_UNDER_CARE
+    (i: any) => isCurrentlyInCare(getIntakeDispositionCode(i))
   ).length;
   const released = intakes.filter(
-    (i: any) =>
-      i.dispositions?.disposition_code === DISPOSITION_RELEASED
+    (i: any) => normalizeDisposition(getIntakeDispositionCode(i)) === DISPOSITION_RELEASED
   ).length;
   const title = speciesFilter
     ? `Statistics for ${speciesFilter}`
@@ -1717,7 +1890,7 @@ async function handleStatistics(
           items: [
             { label: "Total Intakes", value: total.toString() },
             { label: "Total Animals", value: totalAnimals.toString() },
-            { label: "Under Care", value: underCare.toString() },
+            { label: "Under Case", value: underCare.toString() },
             { label: "Released", value: released.toString() },
           ],
         },

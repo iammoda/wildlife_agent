@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { DISPOSITION_UNDER_CARE } from "@/lib/constants";
+import { isCurrentlyInCare } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     };
     const { data: intakes } = await supabaseAdmin
       .from("intakes")
-      .select("*, dispositions(disposition_code)")
+      .select("intake_date, disposition, dispositions(disposition_code)")
       .eq("user_id", session.userId);
 
     if (!intakes) {
@@ -36,10 +36,10 @@ export async function GET(request: NextRequest) {
 
     const totalIntakes = intakes.length;
     const animalsUnderCare = intakes.filter((i: any) => {
-      const disp = i.dispositions;
-      return (
-        !disp || disp.disposition_code === DISPOSITION_UNDER_CARE || !disp.disposition_code
-      );
+      const fallbackDisposition = Array.isArray(i.dispositions)
+        ? i.dispositions[0]?.disposition_code
+        : i.dispositions?.disposition_code;
+      return isCurrentlyInCare(i.disposition ?? fallbackDisposition);
     }).length;
     const intakesThisWeek = intakes.filter(
       (i: any) => new Date(i.intake_date) >= weekAgo

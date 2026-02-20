@@ -60,36 +60,42 @@ Classify the user's message into ONE of these intents:
 7. "delete_intake" - User wants to delete an intake
    - "delete intake [number]", "remove intake [number]"
    - params: { intake_number: string }
-8. "list_animals_in_care" - User wants to see all current animals
+8. "list_animals_in_care" - User wants to see current animals under care
    - "show current intakes", "list animals in care", "what animals do I have"
-   - "show me all intakes", "current intakes"
-9. "update_care_log" - User wants to modify a care log entry
+   - "show under care with under case status", "animals under care with permanent non releasable status"
+   - params: { status_filter?: string }
+9. "list_all_intakes" - User wants to see all intake records (optionally filtered by status)
+   - "show me all intakes", "list all intakes", "show every intake"
+   - "show all intakes with released status", "all intakes with transferred"
+   - params: { status_filter?: string }
+10. "update_care_log" - User wants to modify a care log entry
    - "update care log for [number]", "update care log [number]"
    - "modify care log for intake [number]", "change care log for [number]"
    - "update the care log from [date]", "change the weight on today's log for [number]"
    - params: { intake_number: string, log_date?: string, updates: object }
-10. "delete_care_log" - User wants to remove a care log
+11. "delete_care_log" - User wants to remove a care log
     - "delete care log for [number]", "delete care log [number]"
     - "remove care log for intake [number]", "delete the care log from [date] for [number]"
     - params: { intake_number: string, log_date?: string }
-11. "statistics" - User wants stats about their intakes
+12. "statistics" - User wants stats about their intakes
     - "how many [species]", "statistics", "numbers"
     - params: { metric: string, species_filter?: string }
-12. "help" - User asking what the system can do
+13. "help" - User asking what the system can do
     - "help", "what can you do", "how do I"
-13. "quick_status" - User wants a quick overview of all intakes
+14. "quick_status" - User wants a quick overview of all intakes
     - "status", "what's up", "overview", "summary"
     - "who needs feeding", "what's due", "check on everyone"
     - "how are my intakes", "daily check"
-14. "confirm_pending" - User confirms a pending action
+15. "confirm_pending" - User confirms a pending action
     - "yes", "yeah", "yep", "correct", "that's right"
     - Only when there's a pending action awaiting confirmation
-15. "general_question" - Wildlife rehab questions not covered above
+16. "general_question" - Wildlife rehab questions not covered above
     - Clinical care questions, rehab best practices
     - NOT public advice about finding injured animals
 Respond with JSON: { "type": string, "params": object, "confidence": number }
 PRIORITY RULES:
-- "list_animals_in_care" when user asks to see ALL/CURRENT animals without a specific number
+- "list_all_intakes" when user explicitly asks for ALL intakes/records
+- "list_animals_in_care" when user asks for current/under-care animals
 - "edit_intake" when user says "edit" with an intake number
 - "update_intake" when user provides specific field values to change
 - "update_care_log" when user provides specific care log field updates
@@ -137,7 +143,7 @@ EXTRACT THESE FIELDS (use null for missing/unmentioned fields):
 | food_offered | Food offered at intake | "Esbilac 2ml", "wet cat food" |
 | donation_amount | Donation amount if provided | "25", "25.00" |
 | notes | Additional intake notes | "bite marks on left leg" |
-| disposition | Current/initial disposition code | "UC", "R", "E" |
+| disposition | Current/initial status | "Under Case", "Released", "Transferred", "Deceased", "Euthanized", "Permanently Non Releasable" |
 | disposition_date | Date/time of disposition if known | "2026-02-20", "2026-02-20T09:00" |
 | distress_code | Condition code if mentioned | "A", "B", "C", "D" |
 | distress_subcode | Subcode if mentioned | "1", "2", "3" |
@@ -152,6 +158,13 @@ EXTRACTION RULES:
 - If donation amount is mentioned, return numeric text without currency symbols when possible
 - If the user mentions "today", "yesterday", "this morning", etc., interpret relative to the current date
 - Default intake_date to today if not specified
+- For disposition/status, use one of:
+  - "UNDER_CASE"
+  - "RELEASED"
+  - "TRANSFERRED"
+  - "DECEASED"
+  - "EUTHANIZED"
+  - "PERM_NON_RELEASABLE"
 Respond with a JSON object containing the extracted fields.`;
 
 export const INTAKE_MERGE_PROMPT = `You are updating an existing wildlife intake record with additional information provided by the user.
@@ -229,7 +242,7 @@ FIELD MAPPING:
 - "age" - Animal's age or life stage
 - "distress_code" - Distress code
 - "distress_subcode" - Distress subcode
-- "disposition" - Disposition code
+- "disposition" - Intake status code ("UNDER_CASE", "RELEASED", "TRANSFERRED", "DECEASED", "EUTHANIZED", "PERM_NON_RELEASABLE")
 - "disposition_date" - Disposition date
 - "notes" - Additional intake notes
 - "exam_notes" - Exam/treatment notes

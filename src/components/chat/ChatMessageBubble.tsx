@@ -169,7 +169,13 @@ function renderEmbeddedContent(
         />
       );
     case "animals_list":
-      return <AnimalsInCareList animals={embedded.data} />;
+      return (
+        <AnimalsInCareList
+          animals={embedded.data.items}
+          mode={embedded.data.mode}
+          statusFilter={embedded.data.statusFilter}
+        />
+      );
     case "quick_status":
       return (
         <QuickStatusCard

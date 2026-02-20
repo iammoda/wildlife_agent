@@ -5,7 +5,7 @@ import { ParsedIntake } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { REQUIRED_INTAKE_FIELDS } from "@/lib/constants";
+import { getDispositionInfo, REQUIRED_INTAKE_FIELDS } from "@/lib/constants";
 
 interface IntakeConfirmationCardProps {
   data: ParsedIntake;
@@ -120,7 +120,10 @@ export function IntakeConfirmationCard({
             <DetailField label="Distress Code" value={formatDistressCode(data)} />
             <DetailField label="Food Offered" value={data.food_offered} />
             <DetailField label="Donation Amount" value={data.donation_amount} />
-            <DetailField label="Disposition Code" value={data.disposition} />
+            <DetailField
+              label="Status"
+              value={data.disposition ? getDispositionInfo(data.disposition).shortTitle : undefined}
+            />
             <DetailField
               label="Disposition Date"
               value={formatDisplayDate(data.disposition_date)}

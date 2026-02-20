@@ -5,7 +5,13 @@ import { ParsedIntake } from "@/lib/types";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { SEX_OPTIONS, INTAKE_REASON_OPTIONS } from "@/lib/constants";
+import {
+  DISPOSITION_CODES,
+  DISPOSITION_OPTIONS,
+  INTAKE_REASON_OPTIONS,
+  SEX_OPTIONS,
+  normalizeDisposition,
+} from "@/lib/constants";
 
 interface IntakeEditModalProps {
   isOpen: boolean;
@@ -99,6 +105,16 @@ export function IntakeEditModal({
               onChange={(value) => handleChange("intake_reason", value)}
               options={INTAKE_REASON_OPTIONS}
             />
+            <SelectField
+              label="Status"
+              value={normalizeDisposition(formData.disposition)}
+              onChange={(value) => handleChange("disposition", value)}
+              options={DISPOSITION_OPTIONS}
+              optionLabel={(value) =>
+                DISPOSITION_CODES[value as keyof typeof DISPOSITION_CODES]
+                  .shortTitle
+              }
+            />
           </div>
 
           <TextAreaField
@@ -190,12 +206,6 @@ export function IntakeEditModal({
               onChange={(e) => handleChange("donation_amount", e.target.value)}
               placeholder="e.g., 25.00"
             />
-            <Input
-              label="Disposition Code"
-              value={formData.disposition || ""}
-              onChange={(e) => handleChange("disposition", e.target.value)}
-              placeholder="e.g., UC, R, E"
-            />
             <DateTimeField
               label="Disposition Date"
               value={formatDateTimeLocal(formData.disposition_date)}
@@ -273,9 +283,16 @@ interface SelectFieldProps {
   value: string;
   onChange: (value: string) => void;
   options: readonly string[];
+  optionLabel?: (option: string) => string;
 }
 
-function SelectField({ label, value, onChange, options }: SelectFieldProps) {
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  optionLabel,
+}: SelectFieldProps) {
   return (
     <div>
       <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--color-text-secondary)" }}>
@@ -288,7 +305,7 @@ function SelectField({ label, value, onChange, options }: SelectFieldProps) {
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {optionLabel ? optionLabel(option) : option}
           </option>
         ))}
       </select>

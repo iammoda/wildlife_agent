@@ -3,17 +3,34 @@
 import { IntakeWithRelations } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { formatDate } from "@/lib/utils";
+import { getDispositionInfo } from "@/lib/constants";
 
 interface AnimalsInCareListProps {
   animals: IntakeWithRelations[];
+  mode?: "under_care" | "all_intakes";
+  statusFilter?: string;
 }
 
-export function AnimalsInCareList({ animals }: AnimalsInCareListProps) {
+export function AnimalsInCareList({
+  animals,
+  mode = "under_care",
+  statusFilter,
+}: AnimalsInCareListProps) {
+  const title = mode === "all_intakes" ? "All Intakes" : "Animals Under Care";
+  const emptyMessage =
+    mode === "all_intakes"
+      ? statusFilter
+        ? `No intakes found with status ${statusFilter}.`
+        : "No intakes found."
+      : statusFilter
+        ? `No under-care animals found with status ${statusFilter}.`
+        : "No animals currently under care.";
+
   if (animals.length === 0) {
     return (
       <Card variant="bordered">
         <p className="text-sm text-secondary-text text-center py-4">
-          No animals currently under care.
+          {emptyMessage}
         </p>
       </Card>
     );
@@ -23,7 +40,7 @@ export function AnimalsInCareList({ animals }: AnimalsInCareListProps) {
     <Card variant="bordered" className="space-y-3 animate-fadeIn">
       <div className="flex items-center justify-between">
         <h3 className="font-title text-lg font-semibold text-primary-text">
-          Animals Under Care
+          {title}
         </h3>
         <span
           className="intake-pill"
@@ -36,7 +53,13 @@ export function AnimalsInCareList({ animals }: AnimalsInCareListProps) {
         </span>
       </div>
       <div className="space-y-2">
-        {animals.map((animal) => (
+        {animals.map((animal) => {
+          const relationDisposition = animal.dispositions;
+          const relationCode = Array.isArray(relationDisposition)
+            ? relationDisposition[0]?.disposition_code
+            : relationDisposition?.disposition_code;
+          const disp = getDispositionInfo(animal.disposition ?? relationCode);
+          return (
           <div
             key={animal.id}
             className="intake-row-accent flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
@@ -67,12 +90,15 @@ export function AnimalsInCareList({ animals }: AnimalsInCareListProps) {
               <span className="text-xs text-secondary-text">
                 {formatDate(animal.intake_date)}
               </span>
-              <span className="intake-pill status-pill-success text-[10px]">
-                Under Care
+              <span
+                className={`intake-pill text-[10px] ${disp.isPositive ? "status-pill-success" : "status-pill-danger"}`}
+              >
+                {disp.shortTitle}
               </span>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
       <p className="hint-row text-xs">
         <svg

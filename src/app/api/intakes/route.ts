@@ -7,6 +7,10 @@ import {
   splitIntakeAndExamUpdates,
   upsertLatestExamForIntake,
 } from "@/lib/intake-persistence";
+import {
+  DEFAULT_DISPOSITION,
+  normalizeDisposition,
+} from "@/lib/constants";
 
 async function getNextIntakeNumber(
   userId: string,
@@ -100,6 +104,9 @@ export async function POST(request: NextRequest) {
       return response;
     };
     const body = await request.json();
+    const disposition = body.disposition
+      ? normalizeDisposition(body.disposition)
+      : DEFAULT_DISPOSITION;
 
     if (!body.intake_number || !body.species) {
       return jsonResponse(
@@ -149,7 +156,7 @@ export async function POST(request: NextRequest) {
           food_offered: body.food_offered,
           donation_amount: body.donation_amount,
           notes: body.notes,
-          disposition: body.disposition,
+          disposition,
           disposition_date: body.disposition_date,
         })
         .select()

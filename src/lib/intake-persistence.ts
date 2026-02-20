@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { normalizeDisposition } from "@/lib/constants";
 
 export const INTAKE_UPDATABLE_FIELDS = [
   "intake_number",
@@ -50,7 +51,11 @@ export function splitIntakeAndExamUpdates(payload: Record<string, unknown>) {
     }
 
     if ((INTAKE_UPDATABLE_FIELDS as readonly string[]).includes(key)) {
-      intakeUpdates[key] = value;
+      if (key === "disposition") {
+        intakeUpdates[key] = normalizeDisposition(value);
+      } else {
+        intakeUpdates[key] = value;
+      }
       continue;
     }
 

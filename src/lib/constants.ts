@@ -9,31 +9,129 @@ export const INTAKE_REASON_OPTIONS = [
   "Other",
 ] as const;
 
+export const DISPOSITION_UNDER_CASE = "UNDER_CASE";
+export const DISPOSITION_RELEASED = "RELEASED";
+export const DISPOSITION_TRANSFERRED = "TRANSFERRED";
+export const DISPOSITION_DECEASED = "DECEASED";
+export const DISPOSITION_EUTHANIZED = "EUTHANIZED";
+export const DISPOSITION_PERM_NON_RELEASABLE = "PERM_NON_RELEASABLE";
+
+export const DEFAULT_DISPOSITION = DISPOSITION_UNDER_CASE;
+
 export const DISPOSITION_CODES = {
-  UC: {
-    shortTitle: "Under Care",
+  [DISPOSITION_UNDER_CASE]: {
+    shortTitle: "Under Case",
     isPositive: true,
   },
-  REL: {
+  [DISPOSITION_RELEASED]: {
     shortTitle: "Released",
     isPositive: true,
   },
-  TRN: {
+  [DISPOSITION_TRANSFERRED]: {
     shortTitle: "Transferred",
     isPositive: true,
   },
-  DOA: {
-    shortTitle: "DOA",
+  [DISPOSITION_DECEASED]: {
+    shortTitle: "Deceased",
     isPositive: false,
   },
-  EUTH: {
+  [DISPOSITION_EUTHANIZED]: {
     shortTitle: "Euthanized",
     isPositive: false,
   },
+  [DISPOSITION_PERM_NON_RELEASABLE]: {
+    shortTitle: "Permanently Non Releasable",
+    isPositive: true,
+  },
 } as const;
 
-export const DISPOSITION_UNDER_CARE = "UC";
-export const DISPOSITION_RELEASED = "REL";
+export const DISPOSITION_OPTIONS = [
+  DISPOSITION_UNDER_CASE,
+  DISPOSITION_RELEASED,
+  DISPOSITION_TRANSFERRED,
+  DISPOSITION_DECEASED,
+  DISPOSITION_EUTHANIZED,
+  DISPOSITION_PERM_NON_RELEASABLE,
+] as const;
+
+export const DISPOSITION_LABELS = DISPOSITION_OPTIONS.map(
+  (code) => DISPOSITION_CODES[code].shortTitle
+);
+
+const DISPOSITION_ALIASES: Record<string, (typeof DISPOSITION_OPTIONS)[number]> =
+  {
+    // Current canonical values
+    under_case: DISPOSITION_UNDER_CASE,
+    released: DISPOSITION_RELEASED,
+    transferred: DISPOSITION_TRANSFERRED,
+    deceased: DISPOSITION_DECEASED,
+    euthanized: DISPOSITION_EUTHANIZED,
+    perm_non_releasable: DISPOSITION_PERM_NON_RELEASABLE,
+    // Legacy codes
+    uc: DISPOSITION_UNDER_CASE,
+    rel: DISPOSITION_RELEASED,
+    trn: DISPOSITION_TRANSFERRED,
+    doa: DISPOSITION_DECEASED,
+    euth: DISPOSITION_EUTHANIZED,
+    // Spoken/typed variants
+    undercare: DISPOSITION_UNDER_CASE,
+    under_care: DISPOSITION_UNDER_CASE,
+    under_case_status: DISPOSITION_UNDER_CASE,
+    undercase: DISPOSITION_UNDER_CASE,
+    permanent_non_releasable: DISPOSITION_PERM_NON_RELEASABLE,
+    permanently_non_releasable: DISPOSITION_PERM_NON_RELEASABLE,
+    permanently_nonreleasable: DISPOSITION_PERM_NON_RELEASABLE,
+    permanently_non_releasable_status: DISPOSITION_PERM_NON_RELEASABLE,
+    permanent_nonreleasable: DISPOSITION_PERM_NON_RELEASABLE,
+    non_releasable: DISPOSITION_PERM_NON_RELEASABLE,
+    nonreleasable: DISPOSITION_PERM_NON_RELEASABLE,
+    pnr: DISPOSITION_PERM_NON_RELEASABLE,
+  };
+
+function canonicalizeDispositionValue(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+export function normalizeDisposition(
+  value: unknown
+): (typeof DISPOSITION_OPTIONS)[number] {
+  if (typeof value !== "string" || !value.trim()) {
+    return DEFAULT_DISPOSITION;
+  }
+
+  const key = canonicalizeDispositionValue(value);
+  const mapped = DISPOSITION_ALIASES[key];
+  if (mapped) return mapped;
+
+  const uppercaseRaw = value.trim().toUpperCase();
+  if (
+    (DISPOSITION_OPTIONS as readonly string[]).includes(uppercaseRaw)
+  ) {
+    return uppercaseRaw as (typeof DISPOSITION_OPTIONS)[number];
+  }
+
+  return DEFAULT_DISPOSITION;
+}
+
+export function getDispositionInfo(value: unknown) {
+  const code = normalizeDisposition(value);
+  return {
+    code,
+    ...DISPOSITION_CODES[code],
+  };
+}
+
+export function isCurrentlyInCare(value: unknown): boolean {
+  const code = normalizeDisposition(value);
+  return (
+    code === DISPOSITION_UNDER_CASE ||
+    code === DISPOSITION_PERM_NON_RELEASABLE
+  );
+}
 
 /**
  * Required fields for a complete intake record.

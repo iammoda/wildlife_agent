@@ -20,6 +20,7 @@ export type IntentType =
   | "update_intake"
   | "delete_intake"
   | "list_animals_in_care"
+  | "list_all_intakes"
   | "update_care_log"
   | "delete_care_log"
   | "statistics"
@@ -65,7 +66,11 @@ export type EmbeddedContent =
     }
   | {
       type: "animals_list";
-      data: IntakeWithRelations[];
+      data: {
+        items: IntakeWithRelations[];
+        mode: "under_care" | "all_intakes";
+        statusFilter?: string;
+      };
     }
   | {
       type: "quick_status";

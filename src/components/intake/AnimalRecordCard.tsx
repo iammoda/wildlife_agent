@@ -3,7 +3,7 @@
 import { Intake, IntakeWithRelations } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { formatDate } from "@/lib/utils";
-import { DISPOSITION_CODES } from "@/lib/constants";
+import { getDispositionInfo } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 
 interface AnimalRecordCardProps {
@@ -21,14 +21,12 @@ export function AnimalRecordCard({
   onDelete,
   onAddCareLog,
 }: AnimalRecordCardProps) {
-  const disposition = "disposition" in intake ? intake.disposition : null;
-  const dispCode =
-    typeof disposition === "string"
-      ? disposition
-      : disposition?.disposition_code;
-  const dispInfo = dispCode
-    ? DISPOSITION_CODES[dispCode as keyof typeof DISPOSITION_CODES]
-    : null;
+  const relationDisposition = "dispositions" in intake ? intake.dispositions : null;
+  const relationCode = Array.isArray(relationDisposition)
+    ? relationDisposition[0]?.disposition_code
+    : relationDisposition?.disposition_code;
+  const rawDisposition = intake.disposition ?? relationCode;
+  const dispInfo = getDispositionInfo(rawDisposition);
 
   return (
     <Card variant="bordered" className="space-y-5 p-5 card-accent-top animate-fadeIn">
@@ -49,8 +47,8 @@ export function AnimalRecordCard({
           </p>
         </div>
         <StatusBadge
-          status={dispInfo?.shortTitle || "Under Care"}
-          isPositive={dispInfo?.isPositive ?? true}
+          status={dispInfo.shortTitle}
+          isPositive={dispInfo.isPositive}
         />
       </div>
 
