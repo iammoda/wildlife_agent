@@ -4,14 +4,28 @@ import { Intake, IntakeWithRelations } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { formatDate } from "@/lib/utils";
 import { DISPOSITION_CODES } from "@/lib/constants";
+import { Button } from "@/components/ui/Button";
 
 interface AnimalRecordCardProps {
   intake: Intake | IntakeWithRelations;
+  showEditButton?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onAddCareLog?: () => void;
 }
 
-export function AnimalRecordCard({ intake }: AnimalRecordCardProps) {
+export function AnimalRecordCard({
+  intake,
+  showEditButton = true,
+  onEdit,
+  onDelete,
+  onAddCareLog,
+}: AnimalRecordCardProps) {
   const disposition = "disposition" in intake ? intake.disposition : null;
-  const dispCode = disposition?.disposition_code;
+  const dispCode =
+    typeof disposition === "string"
+      ? disposition
+      : disposition?.disposition_code;
   const dispInfo = dispCode
     ? DISPOSITION_CODES[dispCode as keyof typeof DISPOSITION_CODES]
     : null;
@@ -68,6 +82,28 @@ export function AnimalRecordCard({ intake }: AnimalRecordCardProps) {
       )}
       {intake.notes && (
         <div className="text-sm text-secondary-text italic">{intake.notes}</div>
+      )}
+      {(showEditButton || onAddCareLog || onDelete) && (
+        <div
+          className="flex gap-2 pt-2 border-t"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          {showEditButton && onEdit && (
+            <Button variant="secondary" size="sm" onClick={onEdit}>
+              Edit
+            </Button>
+          )}
+          {onAddCareLog && (
+            <Button variant="secondary" size="sm" onClick={onAddCareLog}>
+              Add Care Log
+            </Button>
+          )}
+          {onDelete && (
+            <Button variant="ghost" size="sm" onClick={onDelete}>
+              Delete
+            </Button>
+          )}
+        </div>
       )}
     </Card>
   );

@@ -1,17 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { CARE_LOG_PARSING_PROMPT } from "@/lib/prompts";
 import { ParsedCareLog } from "@/lib/types";
 
+function injectDateTime(prompt: string): string {
+  const dateTimeStr = new Date().toLocaleString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  return prompt.replace("{CURRENT_DATETIME}", dateTimeStr);
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireAuth();
+    const { session, tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
     const { text } = await request.json();
 
     if (!text) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "No text provided" },
         { status: 400 }
       );
@@ -20,7 +40,7 @@ export async function POST(request: NextRequest) {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: CARE_LOG_PARSING_PROMPT },
+        { role: "system", content: injectDateTime(CARE_LOG_PARSING_PROMPT) },
         { role: "user", content: text },
       ],
       response_format: { type: "json_object" },
@@ -33,24 +53,24 @@ export async function POST(request: NextRequest) {
     try {
       parsed = JSON.parse(content);
     } catch {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Failed to parse response" },
         { status: 500 }
       );
     }
 
     if ((parsed as { error?: string }).error) {
-      return NextResponse.json({
+      return jsonResponse({
         success: false,
         error: (parsed as { error?: string }).error,
       });
     }
 
     if (!parsed.intake_number) {
-      return NextResponse.json({
+      return jsonResponse({
         success: false,
         error:
-          "No intake number found in message. Please specify which patient.",
+          "No intake number found in message. Please specify which intake.",
       });
     }
 
@@ -62,7 +82,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (lookupError || !intake) {
-      return NextResponse.json({
+      return jsonResponse({
         success: false,
         error: `Could not find intake matching "${parsed.intake_number}". Please check the number.`,
       });
@@ -75,7 +95,7 @@ export async function POST(request: NextRequest) {
     parsed.intake_id = intake.id;
     parsed.intake_number = intake.intake_number;
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: parsed,
     });

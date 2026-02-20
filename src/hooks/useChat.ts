@@ -8,7 +8,13 @@ import {
   ParseIntakeResponse,
 } from "@/lib/types";
 import { generateId } from "@/lib/utils";
-import { VOICE_SAVE_COMMANDS, VOICE_CANCEL_COMMANDS } from "@/lib/constants";
+import {
+  REQUIRED_INTAKE_FIELDS,
+  VOICE_SAVE_COMMANDS,
+  VOICE_CANCEL_COMMANDS,
+} from "@/lib/constants";
+
+const MAX_MESSAGES = 100;
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -25,7 +31,13 @@ export function useChat() {
         timestamp: new Date(),
         embedded,
       };
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => {
+        const next = [...prev, message];
+        if (next.length > MAX_MESSAGES) {
+          return next.slice(-MAX_MESSAGES);
+        }
+        return next;
+      });
       return message;
     },
     []
@@ -47,11 +59,91 @@ export function useChat() {
     []
   );
 
+  const updateEmbeddedContent = useCallback(
+    (id: string, type: "care_log" | "intake", data: any) => {
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (!msg.embedded) return msg;
+
+          if (type === "care_log") {
+            if (msg.embedded.type === "care_logs") {
+              const updatedLogs = msg.embedded.data.map((log) =>
+                log.id === id ? { ...log, ...data } : log
+              );
+              return {
+                ...msg,
+                embedded: { ...msg.embedded, data: updatedLogs },
+              };
+            }
+            if (msg.embedded.type === "care_log_updated") {
+              if (msg.embedded.data.id !== id) return msg;
+              return {
+                ...msg,
+                embedded: {
+                  ...msg.embedded,
+                  data: { ...msg.embedded.data, ...data },
+                },
+              };
+            }
+            if (msg.embedded.type === "care_log_created") {
+              if (msg.embedded.data.log.id !== id) return msg;
+              return {
+                ...msg,
+                embedded: {
+                  ...msg.embedded,
+                  data: {
+                    ...msg.embedded.data,
+                    log: { ...msg.embedded.data.log, ...data },
+                  },
+                },
+              };
+            }
+          }
+
+          if (type === "intake") {
+            if (
+              msg.embedded.type === "animal_record" ||
+              msg.embedded.type === "animal_record_full" ||
+              msg.embedded.type === "intake_edit"
+            ) {
+              if (msg.embedded.data.id !== id) return msg;
+              return {
+                ...msg,
+                embedded: {
+                  ...msg.embedded,
+                  data: { ...msg.embedded.data, ...data },
+                },
+              };
+            }
+          }
+
+          return msg;
+        })
+      );
+    },
+    []
+  );
+
   const matchesCommand = (text: string, commands: string[]): boolean => {
     const normalized = text.toLowerCase().trim();
     return commands.some(
       (cmd) => normalized === cmd || normalized.includes(cmd)
     );
+  };
+
+  const buildParseIntakeResponse = (
+    parsed: ParsedIntake
+  ): ParseIntakeResponse => {
+    const missingFields = REQUIRED_INTAKE_FIELDS.filter((field) => {
+      const value = parsed[field.key as keyof typeof parsed];
+      return value === null || value === undefined || value === "";
+    }).map((field) => field.label);
+
+    return {
+      parsed,
+      missingFields,
+      isComplete: missingFields.length === 0,
+    };
   };
 
   const clearPendingIntake = useCallback(() => {
@@ -97,6 +189,138 @@ export function useChat() {
     [addMessage, clearPendingIntake]
   );
 
+  const editExistingIntake = useCallback(
+    async (intakeId: string, data: ParsedIntake) => {
+      setIsProcessing(true);
+      try {
+        const res = await fetch(`/api/intakes/${intakeId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const result = await res.json();
+        if (result.success) {
+          addMessage(
+            "assistant",
+            `Intake ${result.data.intake_number} updated successfully!`,
+            {
+              type: "animal_record",
+              data: result.data,
+            }
+          );
+        } else {
+          addMessage("assistant", "", {
+            type: "error",
+            message: result.error || "Failed to update intake",
+          });
+        }
+      } catch {
+        addMessage("assistant", "", {
+          type: "error",
+          message: "Failed to update intake. Please try again.",
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [addMessage]
+  );
+
+  const deleteIntake = useCallback(
+    async (intakeId: string, name?: string) => {
+      setIsProcessing(true);
+      try {
+        const res = await fetch(`/api/intakes/${intakeId}`, {
+          method: "DELETE",
+        });
+        const result = await res.json();
+        if (result.success) {
+          addMessage("assistant", "", {
+            type: "deleted_confirmation",
+            data: {
+              status: "deleted",
+              recordType: "intake",
+              name: name || "Intake",
+            },
+          });
+        } else {
+          addMessage("assistant", "", {
+            type: "error",
+            message: result.error || "Failed to delete intake",
+          });
+        }
+      } catch {
+        addMessage("assistant", "", {
+          type: "error",
+          message: "Failed to delete intake. Please try again.",
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [addMessage]
+  );
+
+  const deleteCareLog = useCallback(
+    async (logId: string, name?: string) => {
+      setIsProcessing(true);
+      try {
+        const res = await fetch(`/api/care-logs/${logId}`, {
+          method: "DELETE",
+        });
+        const result = await res.json();
+        if (result.success) {
+          addMessage("assistant", "", {
+            type: "deleted_confirmation",
+            data: {
+              status: "deleted",
+              recordType: "care_log",
+              name: name || "Care log",
+            },
+          });
+        } else {
+          addMessage("assistant", "", {
+            type: "error",
+            message: result.error || "Failed to delete care log",
+          });
+        }
+      } catch {
+        addMessage("assistant", "", {
+          type: "error",
+          message: "Failed to delete care log. Please try again.",
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [addMessage]
+  );
+
+  const undoCareLog = useCallback(
+    async (logId: string) => {
+      try {
+        const res = await fetch(`/api/care-logs/${logId}`, {
+          method: "DELETE",
+        });
+        const result = await res.json();
+        if (result.success) {
+          addMessage("assistant", "Care log undone.");
+        } else {
+          addMessage("assistant", "", {
+            type: "error",
+            message: "Failed to undo care log.",
+          });
+        }
+      } catch {
+        addMessage("assistant", "", {
+          type: "error",
+          message: "Failed to undo care log.",
+        });
+      }
+    },
+    [addMessage]
+  );
+
   const handleParsedIntake = useCallback(
     (response: ParseIntakeResponse, isUpdate: boolean = false) => {
       const { parsed, missingFields, isComplete } = response;
@@ -135,9 +359,10 @@ export function useChat() {
       addMessage("user", text);
       setIsProcessing(true);
       try {
-        if (pendingIntake) {
+        const intakeToSave = pendingIntake;
+        if (intakeToSave) {
           if (matchesCommand(text, VOICE_SAVE_COMMANDS)) {
-            await saveIntake(pendingIntake);
+            await saveIntake(intakeToSave);
             return;
           }
           if (matchesCommand(text, VOICE_CANCEL_COMMANDS)) {
@@ -153,7 +378,7 @@ export function useChat() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              existingIntake: pendingIntake,
+              existingIntake: intakeToSave,
               additionalText: text,
             }),
           });
@@ -173,7 +398,14 @@ export function useChat() {
         const data = await res.json();
 
         if (data.success) {
-          addMessage("assistant", data.data.message, data.data.embedded);
+          if (data.data.embedded?.type === "intake_confirmation") {
+            handleParsedIntake(
+              buildParseIntakeResponse(data.data.embedded.data),
+              false
+            );
+          } else {
+            addMessage("assistant", data.data.message, data.data.embedded);
+          }
         } else {
           addMessage("assistant", "", {
             type: "error",
@@ -195,6 +427,7 @@ export function useChat() {
       saveIntake,
       clearPendingIntake,
       handleParsedIntake,
+      buildParseIntakeResponse,
     ]
   );
 
@@ -217,9 +450,10 @@ export function useChat() {
         const transcribedText = transcribeData.data.text;
         addMessage("user", transcribedText);
 
-        if (pendingIntake) {
+        const intakeToSave = pendingIntake;
+        if (intakeToSave) {
           if (matchesCommand(transcribedText, VOICE_SAVE_COMMANDS)) {
-            await saveIntake(pendingIntake);
+            await saveIntake(intakeToSave);
             return;
           }
           if (matchesCommand(transcribedText, VOICE_CANCEL_COMMANDS)) {
@@ -247,24 +481,26 @@ export function useChat() {
           }
         }
 
-        const parseRes = await fetch("/api/parse-intake", {
+        const chatRes = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: transcribedText }),
+          body: JSON.stringify({ message: transcribedText }),
         });
-        const parseData = await parseRes.json();
-        if (parseData.success && parseData.data.parsed?.species) {
-          handleParsedIntake(parseData.data, false);
-        } else {
-          const chatRes = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: transcribedText }),
-          });
-          const chatData = await chatRes.json();
-          if (chatData.success) {
+        const chatData = await chatRes.json();
+        if (chatData.success) {
+          if (chatData.data.embedded?.type === "intake_confirmation") {
+            handleParsedIntake(
+              buildParseIntakeResponse(chatData.data.embedded.data),
+              false
+            );
+          } else {
             addMessage("assistant", chatData.data.message, chatData.data.embedded);
           }
+        } else {
+          addMessage("assistant", "", {
+            type: "error",
+            message: chatData.error || "Something went wrong",
+          });
         }
       } catch (error) {
         addMessage("assistant", "", {
@@ -284,6 +520,7 @@ export function useChat() {
       saveIntake,
       clearPendingIntake,
       handleParsedIntake,
+      buildParseIntakeResponse,
     ]
   );
 
@@ -363,10 +600,15 @@ export function useChat() {
     sendVoiceMessage,
     sendDocumentCapture,
     saveIntake,
+    editExistingIntake,
+    deleteIntake,
+    deleteCareLog,
+    undoCareLog,
     addMessage,
     clearMessages,
     updatePendingIntake,
     confirmPendingIntake,
     clearPendingIntake,
+    updateEmbeddedContent,
   };
 }

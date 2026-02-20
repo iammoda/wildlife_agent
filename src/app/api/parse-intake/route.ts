@@ -1,19 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { INTAKE_PARSING_PROMPT } from "@/lib/prompts";
 import { incrementIntakeNumber } from "@/lib/utils";
 import { ParsedIntake } from "@/lib/types";
 import { REQUIRED_INTAKE_FIELDS } from "@/lib/constants";
 
+function injectDateTime(prompt: string): string {
+  const dateTimeStr = new Date().toLocaleString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  return prompt.replace("{CURRENT_DATETIME}", dateTimeStr);
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireAuth();
+    const { session, tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
     const { text } = await request.json();
 
     if (!text) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "No text provided" },
         { status: 400 }
       );
@@ -28,7 +48,7 @@ export async function POST(request: NextRequest) {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: INTAKE_PARSING_PROMPT },
+        { role: "system", content: injectDateTime(INTAKE_PARSING_PROMPT) },
         { role: "user", content: text },
       ],
       response_format: { type: "json_object" },
@@ -41,7 +61,7 @@ export async function POST(request: NextRequest) {
     try {
       parsed = JSON.parse(content);
     } catch {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Failed to parse response" },
         { status: 500 }
       );
@@ -66,7 +86,7 @@ export async function POST(request: NextRequest) {
       return value === null || value === undefined || value === "";
     }).map((field) => field.label);
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: {
         parsed,

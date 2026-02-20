@@ -11,12 +11,14 @@ interface IntakeConfirmationCardProps {
   data: ParsedIntake;
   onConfirm: () => void;
   onEdit: () => void;
+  isProcessing?: boolean;
 }
 
 export function IntakeConfirmationCard({
   data,
   onConfirm,
   onEdit,
+  isProcessing = false,
 }: IntakeConfirmationCardProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
@@ -101,11 +103,11 @@ export function IntakeConfirmationCard({
         )}
 
         <div className="flex gap-2 pt-2">
-          <Button onClick={onEdit} variant="secondary" size="sm">
+          <Button onClick={onEdit} variant="secondary" size="sm" disabled={isProcessing}>
             Edit
           </Button>
-          <Button onClick={handleSaveClick} size="sm">
-            Save Intake
+          <Button onClick={handleSaveClick} size="sm" disabled={isProcessing}>
+            {isProcessing ? "Saving..." : "Save Intake"}
           </Button>
         </div>
       </Card>
@@ -135,11 +137,12 @@ export function IntakeConfirmationCard({
               variant="ghost"
               size="sm"
               onClick={() => setShowConfirmDialog(false)}
+              disabled={isProcessing}
             >
               Cancel
             </Button>
-            <Button size="sm" onClick={handleConfirmSave}>
-              Save Anyway
+            <Button size="sm" onClick={handleConfirmSave} disabled={isProcessing}>
+              {isProcessing ? "Saving..." : "Save Anyway"}
             </Button>
           </div>
         </div>

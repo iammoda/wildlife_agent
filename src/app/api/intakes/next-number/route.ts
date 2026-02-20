@@ -1,11 +1,18 @@
-import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { incrementIntakeNumber } from "@/lib/utils";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await requireAuth();
+    const { session, tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
     const { data: settings } = await supabaseAdmin
       .from("user_settings")
       .select("last_intake_number")
@@ -17,7 +24,7 @@ export async function GET() {
       nextNumber = incrementIntakeNumber(settings.last_intake_number);
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: {
         next_number: nextNumber,

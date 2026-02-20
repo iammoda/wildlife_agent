@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, setAuthCookies } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth();
+    const { tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
 
     const formData = await request.formData();
     const imageFile = formData.get("image") as File;
 
     if (!imageFile) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "No image file provided" },
         { status: 400 }
       );
@@ -49,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     const extractedText = response.choices[0]?.message?.content || "";
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: { text: extractedText },
     });

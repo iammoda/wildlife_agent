@@ -1,26 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { INTAKE_MERGE_PROMPT } from "@/lib/prompts";
 import { REQUIRED_INTAKE_FIELDS } from "@/lib/constants";
 import { ParsedIntake } from "@/lib/types";
 
+function injectDateTime(prompt: string): string {
+  const dateTimeStr = new Date().toLocaleString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  return prompt.replace("{CURRENT_DATETIME}", dateTimeStr);
+}
+
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth();
+    const { tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
     const { existingIntake, additionalText } = await request.json();
 
     if (!existingIntake || !additionalText) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Missing existingIntake or additionalText" },
         { status: 400 }
       );
     }
 
-    const prompt = INTAKE_MERGE_PROMPT.replace(
+    const prompt = injectDateTime(INTAKE_MERGE_PROMPT)
+      .replace(
       "{existingIntake}",
       JSON.stringify(existingIntake, null, 2)
-    ).replace("{additionalText}", additionalText);
+    )
+      .replace("{additionalText}", additionalText);
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -38,7 +60,7 @@ export async function POST(request: NextRequest) {
     try {
       merged = JSON.parse(content);
     } catch {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Failed to parse merged response" },
         { status: 500 }
       );
@@ -49,7 +71,7 @@ export async function POST(request: NextRequest) {
       return value === null || value === undefined || value === "";
     }).map((field) => field.label);
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: {
         parsed: merged,

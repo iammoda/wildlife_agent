@@ -32,6 +32,9 @@ export const DISPOSITION_CODES = {
   },
 } as const;
 
+export const DISPOSITION_UNDER_CARE = "UC";
+export const DISPOSITION_RELEASED = "REL";
+
 /**
  * Required fields for a complete intake record.
  * Used for validation in parse-intake API and UI display.

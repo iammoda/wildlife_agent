@@ -16,23 +16,23 @@ export async function GET(
       return response;
     };
     const { id } = await context.params;
-    const { data: logs, error } = await supabaseAdmin
+    const { data: log, error } = await supabaseAdmin
       .from("daily_care_logs")
       .select("*")
-      .eq("intake_id", id)
+      .eq("id", id)
       .eq("user_id", session.userId)
-      .order("log_date", { ascending: false });
+      .single();
 
-    if (error) {
+    if (error || !log) {
       return jsonResponse(
-        { success: false, error: "Failed to fetch care logs" },
-        { status: 500 }
+        { success: false, error: "Care log not found" },
+        { status: 404 }
       );
     }
 
     return jsonResponse({
       success: true,
-      data: logs,
+      data: log,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {
@@ -49,7 +49,7 @@ export async function GET(
   }
 }
 
-export async function POST(
+export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
@@ -67,22 +67,22 @@ export async function POST(
 
     const { data: log, error } = await supabaseAdmin
       .from("daily_care_logs")
-      .insert({
-        user_id: session.userId,
-        intake_id: id,
-        log_date: body.log_date || new Date().toISOString(),
+      .update({
+        log_date: body.log_date,
         weight: body.weight,
         food_fed: body.food_fed,
         amount: body.amount,
         meds_and_comments: body.meds_and_comments,
+        updated_at: new Date().toISOString(),
       })
+      .eq("id", id)
+      .eq("user_id", session.userId)
       .select()
       .single();
 
-    if (error) {
-      console.error("Error creating care log:", error);
+    if (error || !log) {
       return jsonResponse(
-        { success: false, error: "Failed to create care log" },
+        { success: false, error: "Failed to update care log" },
         { status: 500 }
       );
     }
@@ -90,6 +90,52 @@ export async function POST(
     return jsonResponse({
       success: true,
       data: log,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { session, tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
+    const { id } = await context.params;
+
+    const { error } = await supabaseAdmin
+      .from("daily_care_logs")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", session.userId);
+
+    if (error) {
+      return jsonResponse(
+        { success: false, error: "Failed to delete care log" },
+        { status: 500 }
+      );
+    }
+
+    return jsonResponse({
+      success: true,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {

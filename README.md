@@ -91,7 +91,7 @@ Set up the following tables in your Supabase project:
 create table intakes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id),
-  intake_number text unique,
+  intake_number text,
   species text,
   quantity integer default 1,
   sex text,
@@ -105,8 +105,10 @@ create table intakes (
   distress_subcode text,
   disposition text default 'UC',
   disposition_date timestamp with time zone,
+  notes text,
   created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
+  updated_at timestamp with time zone default now(),
+  unique (user_id, intake_number)
 );
 ```
 
@@ -114,11 +116,14 @@ create table intakes (
 ```sql
 create table patient_exams (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id),
   intake_id uuid references intakes(id) on delete cascade,
   exam_date timestamp with time zone default now(),
   weight text,
   age text,
-  notes text,
+  distress_code text,
+  distress_subcode text,
+  treatment_notes text,
   created_at timestamp with time zone default now()
 );
 ```
@@ -127,13 +132,13 @@ create table patient_exams (
 ```sql
 create table daily_care_logs (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id),
   intake_id uuid references intakes(id) on delete cascade,
   log_date timestamp with time zone default now(),
   weight text,
-  food text,
-  feeding_notes text,
-  medications text,
-  notes text,
+  food_fed text,
+  amount text,
+  meds_and_comments text,
   created_at timestamp with time zone default now()
 );
 ```
@@ -142,6 +147,7 @@ create table daily_care_logs (
 ```sql
 create table dispositions (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id),
   intake_id uuid references intakes(id) on delete cascade,
   disposition_code text,
   disposition_date timestamp with time zone,
@@ -226,6 +232,12 @@ src/
 | `/api/intakes/[id]/logs` | POST | Add care log |
 | `/api/intakes/next-number` | GET | Get next intake number |
 | `/api/analytics/summary` | GET | Dashboard statistics |
+
+## Authentication
+
+- Auth uses HTTP-only cookies (`sb-access-token`, `sb-refresh-token`).
+- Cookies persist for 90 days and are refreshed on authenticated API calls.
+- Users remain signed in until they clear cookies or the 90-day window expires.
 
 ## Scripts
 

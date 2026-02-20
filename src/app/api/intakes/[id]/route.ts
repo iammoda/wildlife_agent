@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 export async function GET(
@@ -7,7 +7,14 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAuth();
+    const { session, tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
     const { id } = await context.params;
     const { data: intake, error } = await supabaseAdmin
       .from("intakes")
@@ -24,13 +31,13 @@ export async function GET(
       .single();
 
     if (error || !intake) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Intake not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: intake,
     });
@@ -54,7 +61,14 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAuth();
+    const { session, tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
     const body = await request.json();
     const { id } = await context.params;
 
@@ -70,13 +84,13 @@ export async function PUT(
       .single();
 
     if (error || !intake) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Failed to update intake" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: intake,
     });
@@ -100,7 +114,14 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAuth();
+    const { session, tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
     const { id } = await context.params;
     const { error } = await supabaseAdmin
       .from("intakes")
@@ -109,13 +130,13 @@ export async function DELETE(
       .eq("user_id", session.userId);
 
     if (error) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Failed to delete intake" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
     });
   } catch (error) {

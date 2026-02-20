@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, setAuthCookies } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth();
+    const { tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
 
     const formData = await request.formData();
     const audioFile = formData.get("audio") as File;
 
     if (!audioFile) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "No audio file provided" },
         { status: 400 }
       );
@@ -22,7 +29,7 @@ export async function POST(request: NextRequest) {
       language: "en",
     });
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: { text: transcription.text },
     });

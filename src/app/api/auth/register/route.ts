@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { setAuthCookies } from "@/lib/auth";
 import { supabaseAuth } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
@@ -40,15 +41,9 @@ export async function POST(request: NextRequest) {
   });
 
   if (data.session) {
-    response.cookies.set("sb-access-token", data.session.access_token, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-    });
-    response.cookies.set("sb-refresh-token", data.session.refresh_token, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
+    setAuthCookies(response, {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
     });
   }
 

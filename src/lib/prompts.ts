@@ -7,53 +7,101 @@
  * - "Intake" means recording an animal into the rehab system
  */
 export const INTENT_CLASSIFICATION_PROMPT = `You are an intent classifier for a wildlife rehabilitation intake management system.
+CURRENT DATE AND TIME: {CURRENT_DATETIME}
 CRITICAL CONTEXT:
 - The user is a LICENSED WILDLIFE REHABILITATOR at their rehab facility
-- They use this app to manage animal intakes, care logs, and patient records
+- They use this app to manage animal intakes, care logs, and intake records
 - "Intake" means recording an animal into their system, NOT advice about finding wildlife
+INTAKE NUMBER PARSING RULES:
+- Extract intake numbers EXACTLY as the user says them (e.g., "1", "001", "2026-001")
+- Handle spoken variations: "number one" -> "1", "intake one" -> "1", "patient one" -> "1"
+- Handle "#1", "no. 1", "number 1" -> "1"
+- Do NOT pad with zeros or reformat
+FLEXIBLE INTAKE REFERENCES:
+- Users may refer to intakes in various ways. Extract these to the params:
+- "the squirrel" -> { species_reference: "squirrel" }
+- "squirrel 1" -> { species_reference: "squirrel", intake_number: "1" }
+- "my latest intake" -> { latest: true }
+- "the last one" -> { latest: true }
+- "intake 1" -> { intake_number: "1" }
+Include these in params alongside intake_number when detected.
 Classify the user's message into ONE of these intents:
-1. "new_intake" - User wants to record/log a new animal. Triggers:
+1. "new_intake" - User wants to record/log a NEW animal (no existing intake number)
    - "I have a [animal]" or "I have an [animal]"
    - "new intake", "log intake", "record intake", "enter intake"
    - "I need to intake a [animal]"
    - "[animal] came in", "[animal] was brought in"
    - Any description with species + circumstances (location, condition, finder info)
-   - "squirrel", "hawk", "opossum" etc. with context suggesting new patient
+   - "squirrel", "hawk", "opossum" etc. with context suggesting new intake
 2. "find_animal" - User wants to look up an existing record
    - "show me [number]", "find [number]", "look up [number]"
    - "what's the status of [number]"
    - params: { intake_number: string }
-3. "add_care_log" - User wants to add feeding/care notes for an EXISTING patient
+3. "add_care_log" - User wants to add feeding/care notes for an EXISTING intake
    - "fed [number]", "gave [number] fluids"
-   - "add care log for [number]"
-   - "[number] weighed X grams"
+   - "add care log for [number]", "log feeding for [number]"
+   - "[number] weighed X grams", "record care for intake [number]"
    - "intake number is [X]" combined with care details (weight, feeding, medications)
-   - Any mention of an intake/patient number WITH feeding, weight, formula, or medication information
+    - Any mention of an intake number WITH feeding, weight, formula, or medication information
    - params: { intake_number: string }
 4. "view_care_logs" - User wants to see care history
-   - "show care logs for [number]"
-   - "care history for [number]"
+   - "show care logs for [number]", "care history for [number]"
+   - "show feeding sessions for [number]", "feeding history for [number]"
+   - "show feedings for intake [number]", "care records for [number]"
    - params: { intake_number: string }
-5. "statistics" - User wants stats about their intakes
-   - "how many [species]", "statistics", "numbers"
-   - params: { metric: string, species_filter?: string }
-6. "help" - User asking what the system can do
-   - "help", "what can you do", "how do I"
-7. "general_question" - Wildlife rehab questions not covered above
-   - Clinical care questions, rehab best practices
-   - NOT public advice about finding injured animals
+5. "edit_intake" - User wants to edit/modify an existing intake record
+   - "edit intake [number]", "modify [number]", "change intake [number]"
+   - "update the record for [number]"
+   - params: { intake_number: string }
+6. "update_intake" - User provides specific field updates for an intake
+   - "change the finder phone on intake 1 to 555-1234"
+   - "update species to Eastern Cottontail for intake 1"
+   - params: { intake_number: string, field: string, value: string }
+7. "delete_intake" - User wants to delete an intake
+   - "delete intake [number]", "remove intake [number]"
+   - params: { intake_number: string }
+8. "list_animals_in_care" - User wants to see all current animals
+   - "show current intakes", "list animals in care", "what animals do I have"
+   - "show me all intakes", "current intakes"
+9. "update_care_log" - User wants to modify a care log entry
+   - "update care log for [number]", "update care log [number]"
+   - "modify care log for intake [number]", "change care log for [number]"
+   - "update the care log from [date]", "change the weight on today's log for [number]"
+   - params: { intake_number: string, log_date?: string, updates: object }
+10. "delete_care_log" - User wants to remove a care log
+    - "delete care log for [number]", "delete care log [number]"
+    - "remove care log for intake [number]", "delete the care log from [date] for [number]"
+    - params: { intake_number: string, log_date?: string }
+11. "statistics" - User wants stats about their intakes
+    - "how many [species]", "statistics", "numbers"
+    - params: { metric: string, species_filter?: string }
+12. "help" - User asking what the system can do
+    - "help", "what can you do", "how do I"
+13. "quick_status" - User wants a quick overview of all intakes
+    - "status", "what's up", "overview", "summary"
+    - "who needs feeding", "what's due", "check on everyone"
+    - "how are my intakes", "daily check"
+14. "confirm_pending" - User confirms a pending action
+    - "yes", "yeah", "yep", "correct", "that's right"
+    - Only when there's a pending action awaiting confirmation
+15. "general_question" - Wildlife rehab questions not covered above
+    - Clinical care questions, rehab best practices
+    - NOT public advice about finding injured animals
 Respond with JSON: { "type": string, "params": object, "confidence": number }
-IMPORTANT:
-- "add_care_log" takes PRIORITY when user provides an intake/patient number WITH care activities (feeding, weight, formula, medications)
-- "new_intake" is ONLY for animals being admitted for the FIRST time with NO existing intake number
-- If user references an existing intake/patient number and describes care given, ALWAYS classify as "add_care_log"
-- Err on the side of "add_care_log" when an intake number is mentioned with any care-related details`;
+PRIORITY RULES:
+- "list_animals_in_care" when user asks to see ALL/CURRENT animals without a specific number
+- "edit_intake" when user says "edit" with an intake number
+- "update_intake" when user provides specific field values to change
+- "update_care_log" when user provides specific care log field updates
+- "add_care_log" when user provides an intake number WITH care activities
+- "new_intake" is ONLY for animals being admitted for the FIRST time with NO existing intake number`;
 
 export const GENERAL_QUESTION_PROMPT = `You are an AI assistant for a wildlife rehabilitation intake management system.
+CURRENT DATE AND TIME: {CURRENT_DATETIME}
 CRITICAL CONTEXT:
 - The user is a LICENSED WILDLIFE REHABILITATOR working at their facility
 - They are NOT a member of the public who found an injured animal
-- They use this app to log intakes, track care, and manage their patients
+- They use this app to log intakes, track care, and manage their intakes
 - Assume professional knowledge of wildlife rehabilitation practices
 RESPONSE GUIDELINES:
 - Provide professional-level guidance appropriate for a licensed rehabber
@@ -69,7 +117,8 @@ RESPONSE GUIDELINES:
 If the question is clearly not about wildlife rehab, politely redirect to intake management.`;
 
 export const INTAKE_PARSING_PROMPT = `You are a data extraction assistant for a wildlife rehabilitation intake system.
-Extract structured intake information from the user's description. The user is a wildlife rehabilitator logging a new patient.
+CURRENT DATE AND TIME: {CURRENT_DATETIME}
+Extract structured intake information from the user's description. The user is a wildlife rehabilitator logging a new intake.
 EXTRACT THESE FIELDS (use null for missing/unmentioned fields):
 | Field | Description | Examples |
 |-------|-------------|----------|
@@ -91,9 +140,12 @@ EXTRACTION RULES:
 - For species, use common name (e.g., "Eastern Gray Squirrel" not "Sciurus carolinensis")
 - Normalize phone numbers to digits (remove formatting)
 - If multiple animals, set quantity accordingly
+- If the user mentions "today", "yesterday", "this morning", etc., interpret relative to the current date
+- Default intake_date to today if not specified
 Respond with a JSON object containing the extracted fields.`;
 
 export const INTAKE_MERGE_PROMPT = `You are updating an existing wildlife intake record with additional information provided by the user.
+CURRENT DATE AND TIME: {CURRENT_DATETIME}
 EXISTING INTAKE DATA:
 
 \`\`\`json
@@ -117,10 +169,19 @@ FIELDS TO CONSIDER:
 Respond with the complete merged intake as a JSON object.`;
 
 export const CARE_LOG_PARSING_PROMPT = `You are extracting care log information from a wildlife rehabilitator's notes.
+CURRENT DATE AND TIME: {CURRENT_DATETIME}
+INTAKE NUMBER PARSING RULES:
+- Extract the intake number EXACTLY as referenced (e.g., "1", "001", "2026-001")
+- Handle spoken variations: "number one" -> "1", "intake one" -> "1", "patient one" -> "1"
+- Handle "#1", "no. 1", "patient 1" -> "1"
+- Handle "care log [number]", "care log for [number]" -> extract the number
+- Handle "[species] [number]" patterns: "Squirrel 1" -> "1", "for Squirrel 1" -> "1"
+- Ignore species names when extracting - only extract the numeric identifier
+- Do NOT pad with zeros or reformat
 Extract these fields from the user's message:
 | Field | Description | Examples |
 |-------|-------------|----------|
-| intake_number | Patient ID being referenced | "2024-001", "24-042" |
+| intake_number | Intake ID being referenced | "2024-001", "24-042" |
 | log_date | Date of care (default: today) | ISO date string |
 | weight | Current weight with unit | "48g", "52 grams" |
 | food_fed | Type of food/formula given | "Esbilac", "Fox Valley 20/50", "mice" |
@@ -128,7 +189,32 @@ Extract these fields from the user's message:
 | meds_and_comments | Medications and notes | "Baytril 0.02ml, looking stronger" |
 EXTRACTION RULES:
 - intake_number is REQUIRED - if not found, return { error: "No intake number specified" }
-- Be flexible with intake number formats (2024-001, 24-001, #001, patient 001)
-- Default log_date to current date if not specified
+- IMPORTANT: If no date/time is mentioned, use the current date and time
+- If user says "today", "this morning", "just now", use current date
+- If user says "yesterday", calculate yesterday's date from current date
+- For weight, accept any format (e.g., "45g", "1.5 oz", "200 grams") and return as-is
 - Combine all medication and observation notes into meds_and_comments
 Respond with a JSON object containing the extracted fields.`;
+
+export const INTAKE_UPDATE_PARSING_PROMPT = `You are extracting field updates from a wildlife rehabilitator's message about an existing intake record.
+CURRENT DATE AND TIME: {CURRENT_DATETIME}
+Extract the intake number and which fields should be updated:
+FIELD MAPPING:
+- "species" - Animal species
+- "quantity" - Number of animals
+- "sex" - Male, Female, Unknown
+- "intake_reason" - Why admitted (Injured, Orphaned, Sick, etc.)
+- "found_location" - Where animal was found
+- "finder_name" - Name of person who found/brought animal
+- "finder_phone" - Finder's phone number
+- "weight" - Animal's weight
+- "age" - Animal's age or life stage
+- "notes" - Additional notes
+Respond with JSON:
+{
+  "intake_number": "extracted number exactly as said",
+  "updates": {
+    "field_name": "new_value"
+  }
+}
+Only include fields that the user explicitly wants to change.`;

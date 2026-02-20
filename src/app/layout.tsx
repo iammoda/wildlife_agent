@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "Wildlife Intake",
@@ -25,7 +26,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased bg-primary text-primary">{children}</body>
+      <body className="antialiased bg-primary text-primary">
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

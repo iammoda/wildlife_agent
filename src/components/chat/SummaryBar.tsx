@@ -5,9 +5,10 @@ import { SummaryStats } from "@/lib/types";
 interface SummaryBarProps {
   stats: SummaryStats | null;
   isLoading: boolean;
+  onAnimalsClick?: () => void;
 }
 
-export function SummaryBar({ stats, isLoading }: SummaryBarProps) {
+export function SummaryBar({ stats, isLoading, onAnimalsClick }: SummaryBarProps) {
   if (isLoading) {
     return (
       <div 
@@ -44,13 +45,16 @@ export function SummaryBar({ stats, isLoading }: SummaryBarProps) {
         color: "var(--color-text-secondary)"
       }}
     >
-      <span 
-        className="font-medium"
+      <button
+        type="button"
+        onClick={onAnimalsClick}
+        disabled={!onAnimalsClick}
+        className={onAnimalsClick ? "hover:underline" : "cursor-default"}
         style={{ color: "var(--color-brand-primary)" }}
       >
-        {stats.animals_under_care}
-      </span>{" "}
-      animals under care
+        <span className="font-medium">{stats.animals_under_care}</span>{" "}
+        animals under care
+      </button>
       <span className="mx-2" style={{ color: "var(--color-text-muted)" }}>·</span>
       <span 
         className="font-medium"

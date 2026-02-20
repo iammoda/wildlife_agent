@@ -1,10 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { incrementIntakeNumber } from "@/lib/utils";
 
-export async function GET() {
+async function getNextIntakeNumber(
+  userId: string,
+  fallbackIntakeNumber: string
+): Promise<string> {
+  const { data: settings } = await supabaseAdmin
+    .from("user_settings")
+    .select("last_intake_number")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (settings?.last_intake_number) {
+    return incrementIntakeNumber(settings.last_intake_number);
+  }
+
+  const { data: latestIntake } = await supabaseAdmin
+    .from("intakes")
+    .select("intake_number")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return incrementIntakeNumber(
+    latestIntake?.intake_number || fallbackIntakeNumber
+  );
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = (error as { code?: string }).code;
+  return code === "23505";
+}
+
+export async function GET(request: NextRequest) {
   try {
-    const session = await requireAuth();
+    const { session, tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
     const { data: intakes, error } = await supabaseAdmin
       .from("intakes")
       .select(
@@ -18,13 +59,13 @@ export async function GET() {
 
     if (error) {
       console.error("Error fetching intakes:", error);
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Failed to fetch intakes" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: intakes,
     });
@@ -45,11 +86,18 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireAuth();
+    const { session, tokens } = await requireAuth(request);
+    const jsonResponse = (body: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(body, init);
+      if (tokens) {
+        setAuthCookies(response, tokens);
+      }
+      return response;
+    };
     const body = await request.json();
 
     if (!body.intake_number || !body.species) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Intake number and species are required" },
         { status: 400 }
       );
@@ -63,39 +111,75 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existing) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Intake number already exists" },
         { status: 400 }
       );
     }
 
-    const { data: intake, error } = await supabaseAdmin
-      .from("intakes")
-      .insert({
-        user_id: session.userId,
-        intake_number: body.intake_number,
-        intake_date: body.intake_date || new Date().toISOString(),
-        species: body.species,
-        quantity: body.quantity || 1,
-        sex: body.sex || "Unknown",
-        finder_name: body.finder_name,
-        finder_phone: body.finder_phone,
-        finder_email: body.finder_email,
-        finder_address: body.finder_address,
-        found_date: body.found_date,
-        found_location: body.found_location,
-        intake_reason: body.intake_reason,
-        how_description: body.how_description,
-        food_offered: body.food_offered,
-        donation_amount: body.donation_amount,
-        notes: body.notes,
-      })
-      .select()
-      .single();
+    const maxRetries = 3;
+    let retryCount = 0;
+    let intakeNumber = body.intake_number;
+    let intake: any = null;
+    let error: any = null;
+
+    while (retryCount < maxRetries) {
+      const result = await supabaseAdmin
+        .from("intakes")
+        .insert({
+          user_id: session.userId,
+          intake_number: intakeNumber,
+          intake_date: body.intake_date || new Date().toISOString(),
+          species: body.species,
+          quantity: body.quantity || 1,
+          sex: body.sex || "Unknown",
+          finder_name: body.finder_name,
+          finder_phone: body.finder_phone,
+          finder_email: body.finder_email,
+          finder_address: body.finder_address,
+          found_date: body.found_date,
+          found_location: body.found_location,
+          intake_reason: body.intake_reason,
+          how_description: body.how_description,
+          food_offered: body.food_offered,
+          donation_amount: body.donation_amount,
+          notes: body.notes,
+        })
+        .select()
+        .single();
+
+      intake = result.data;
+      error = result.error;
+
+      if (!error && intake) {
+        break;
+      }
+
+      if (!isUniqueViolation(error)) {
+        break;
+      }
+
+      retryCount += 1;
+      if (retryCount >= maxRetries) {
+        break;
+      }
+
+      intakeNumber = await getNextIntakeNumber(session.userId, intakeNumber);
+    }
 
     if (error) {
+      if (isUniqueViolation(error)) {
+        return jsonResponse(
+          {
+            success: false,
+            error:
+              "Intake number conflict detected. Please retry to generate the next available number.",
+          },
+          { status: 409 }
+        );
+      }
       console.error("Error creating intake:", error);
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "Failed to create intake" },
         { status: 500 }
       );
@@ -104,7 +188,7 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin
       .from("user_settings")
       .update({
-        last_intake_number: body.intake_number,
+        last_intake_number: intake.intake_number,
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", session.userId);
@@ -121,7 +205,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: intake,
     });

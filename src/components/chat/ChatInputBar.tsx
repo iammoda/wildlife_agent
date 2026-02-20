@@ -14,7 +14,7 @@ interface ChatInputBarProps {
 const EXAMPLE_QUESTIONS = [
   "Log a new injured squirrel from Central Park...",
   "What birds did we intake this week?",
-  "Add care notes for patient 2024-042...",
+  "Add care notes for intake 2024-042...",
   "How many animals are currently under care?",
   "Record a release for the red-tailed hawk...",
   "Show me all pending releases...",

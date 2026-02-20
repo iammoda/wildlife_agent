@@ -10,6 +10,14 @@ interface ChatViewProps {
   isProcessing: boolean;
   onConfirmIntake: (data: any) => void;
   onEditIntake: (data: any) => void;
+  onEditExistingIntake?: (data: any) => void;
+  onConfirmDelete?: (recordType: "intake" | "care_log", id: string, name: string) => void;
+  onCancelDelete?: () => void;
+  onAddCareLog?: (intakeNumber: string) => void;
+  onDeleteIntake?: (intake: any) => void;
+  onEditCareLog?: (log: any) => void;
+  onDeleteCareLog?: (logId: string) => void;
+  onUndoCareLog?: (logId: string) => void;
 }
 
 export function ChatView({
@@ -17,6 +25,14 @@ export function ChatView({
   isProcessing,
   onConfirmIntake,
   onEditIntake,
+  onEditExistingIntake,
+  onConfirmDelete,
+  onCancelDelete,
+  onAddCareLog,
+  onDeleteIntake,
+  onEditCareLog,
+  onDeleteCareLog,
+  onUndoCareLog,
 }: ChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -39,8 +55,17 @@ export function ChatView({
           <ChatMessageBubble
             key={message.id}
             message={message}
+            isProcessing={isProcessing}
             onConfirmIntake={onConfirmIntake}
             onEditIntake={onEditIntake}
+            onEditExistingIntake={onEditExistingIntake}
+            onConfirmDelete={onConfirmDelete}
+            onCancelDelete={onCancelDelete}
+            onAddCareLog={onAddCareLog}
+            onDeleteIntake={onDeleteIntake}
+            onEditCareLog={onEditCareLog}
+            onDeleteCareLog={onDeleteCareLog}
+            onUndoCareLog={onUndoCareLog}
           />
         ))}
         {isProcessing && (

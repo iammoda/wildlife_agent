@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ParsedIntake } from "@/lib/types";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +12,7 @@ interface IntakeEditModalProps {
   onClose: () => void;
   initialData: ParsedIntake;
   onSave: (data: ParsedIntake) => void;
+  mode?: "create" | "edit";
 }
 
 export function IntakeEditModal({
@@ -19,8 +20,13 @@ export function IntakeEditModal({
   onClose,
   initialData,
   onSave,
+  mode = "create",
 }: IntakeEditModalProps) {
   const [formData, setFormData] = useState<ParsedIntake>(initialData);
+
+  useEffect(() => {
+    setFormData(initialData);
+  }, [initialData]);
 
   const handleChange = (field: keyof ParsedIntake, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -33,7 +39,12 @@ export function IntakeEditModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit Intake" size="lg">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={mode === "edit" ? "Edit Intake" : "New Intake"}
+      size="lg"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <Input
@@ -157,7 +168,9 @@ export function IntakeEditModal({
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">Save Intake</Button>
+          <Button type="submit">
+            {mode === "edit" ? "Save Changes" : "Save Intake"}
+          </Button>
         </div>
       </form>
     </Modal>

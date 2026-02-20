@@ -16,9 +16,17 @@ export type IntentType =
   | "find_animal"
   | "add_care_log"
   | "view_care_logs"
+  | "edit_intake"
+  | "update_intake"
+  | "delete_intake"
+  | "list_animals_in_care"
+  | "update_care_log"
+  | "delete_care_log"
   | "statistics"
   | "help"
-  | "general_question";
+  | "general_question"
+  | "quick_status"
+  | "confirm_pending";
 
 export interface ClassifiedIntent {
   type: IntentType;
@@ -32,12 +40,48 @@ export type EmbeddedContent =
       data: ParsedIntake;
     }
   | {
+      type: "intake_edit";
+      data: Intake;
+    }
+  | {
       type: "animal_record" | "animal_record_full";
       data: Intake | IntakeWithRelations;
     }
   | {
       type: "care_logs";
       data: DailyCareLog[];
+    }
+  | {
+      type: "care_log_updated";
+      data: DailyCareLog;
+    }
+  | {
+      type: "care_log_created";
+      data: {
+        log: DailyCareLog;
+        intakeNumber: string;
+        species: string;
+      };
+    }
+  | {
+      type: "animals_list";
+      data: IntakeWithRelations[];
+    }
+  | {
+      type: "quick_status";
+      data: {
+        items: QuickStatusItem[];
+        totalUnderCare: number;
+      };
+    }
+  | {
+      type: "deleted_confirmation";
+      data: {
+        status: "confirm" | "deleted";
+        recordType: "intake" | "care_log";
+        id?: string;
+        name: string;
+      };
     }
   | {
       type: "statistics";
@@ -107,6 +151,7 @@ export interface ParsedCareLog {
 
 export interface Intake {
   id: string;
+  user_id?: string;
   intake_number: string;
   species: string;
   intake_date: string | Date;
@@ -116,7 +161,14 @@ export interface Intake {
   found_location?: string | null;
   finder_name?: string | null;
   finder_phone?: string | null;
+  how_description?: string | null;
+  distress_code?: string | null;
+  distress_subcode?: string | null;
+  disposition?: string | IntakeDisposition | null;
+  disposition_date?: string | null;
   notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface IntakeDisposition {
@@ -124,16 +176,28 @@ export interface IntakeDisposition {
 }
 
 export interface IntakeWithRelations extends Intake {
-  disposition?: IntakeDisposition | null;
+  dispositions?: IntakeDisposition | IntakeDisposition[] | null;
 }
 
 export interface DailyCareLog {
   id: string;
+  user_id?: string | null;
+  intake_id?: string | null;
   log_date: string | Date;
   weight?: string | null;
   food_fed?: string | null;
   amount?: string | null;
   meds_and_comments?: string | null;
+  created_at?: string | null;
+}
+
+export interface QuickStatusItem {
+  intakeNumber: string;
+  species: string;
+  lastFedAt: string | null;
+  lastWeight: string | null;
+  weightTrend: "up" | "down" | "stable" | "unknown";
+  hoursAgo: number | null;
 }
 
 export interface StatisticsItem {
@@ -161,4 +225,15 @@ export interface ChartData {
 export interface ChatResponse {
   message: string;
   embedded?: EmbeddedContent;
+}
+
+export interface ChatContext {
+  recentIntakeNumber?: string;
+  recentIntakeId?: string;
+  recentSpecies?: string;
+  lastIntent?: IntentType;
+  pendingCareLogData?: ParsedCareLog;
+  pendingCareLogAction?: "add" | "update";
+  pendingCareLogTargetDate?: string;
+  updatedAt?: string;
 }
