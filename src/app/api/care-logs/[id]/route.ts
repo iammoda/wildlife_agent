@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
+function isValidDate(dateStr: string): boolean {
+  const date = new Date(dateStr);
+  return !Number.isNaN(date.getTime());
+}
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -62,25 +67,88 @@ export async function PUT(
       }
       return response;
     };
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse(
+        { success: false, error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    if (!body || typeof body !== "object") {
+      return jsonResponse(
+        { success: false, error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    const bodyObj = body as Record<string, unknown>;
     const { id } = await context.params;
+
+    const updates: Record<string, unknown> = {};
+
+    if ("log_date" in bodyObj) {
+      const logDate = bodyObj.log_date;
+      if (logDate !== null && logDate !== undefined) {
+        if (typeof logDate !== "string" || !isValidDate(logDate)) {
+          return jsonResponse(
+            { success: false, error: "Invalid log_date. Use a valid ISO date." },
+            { status: 400 }
+          );
+        }
+      }
+      updates.log_date = logDate;
+    }
+
+    if ("weight" in bodyObj) updates.weight = bodyObj.weight;
+    if ("food_fed" in bodyObj) updates.food_fed = bodyObj.food_fed;
+    if ("amount" in bodyObj) updates.amount = bodyObj.amount;
+    if ("meds_and_comments" in bodyObj) {
+      updates.meds_and_comments = bodyObj.meds_and_comments;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "No updatable fields provided. Include log_date, weight, food_fed, amount, or meds_and_comments.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const { data: existingLog, error: existingError } = await supabaseAdmin
+      .from("daily_care_logs")
+      .select("id")
+      .eq("id", id)
+      .eq("user_id", session.userId)
+      .single();
+
+    if (existingError || !existingLog) {
+      return jsonResponse(
+        { success: false, error: "Care log not found" },
+        { status: 404 }
+      );
+    }
 
     const { data: log, error } = await supabaseAdmin
       .from("daily_care_logs")
-      .update({
-        log_date: body.log_date,
-        weight: body.weight,
-        food_fed: body.food_fed,
-        amount: body.amount,
-        meds_and_comments: body.meds_and_comments,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updates)
       .eq("id", id)
       .eq("user_id", session.userId)
       .select()
       .single();
 
     if (error || !log) {
+      console.error("Failed to update care log:", {
+        error,
+        userId: session.userId,
+        careLogId: id,
+        updates,
+      });
       return jsonResponse(
         { success: false, error: "Failed to update care log" },
         { status: 500 }
@@ -99,6 +167,7 @@ export async function PUT(
       );
     }
 
+    console.error("Care log PUT route error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

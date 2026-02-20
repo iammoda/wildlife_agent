@@ -1316,10 +1316,7 @@ async function handleUpdateCareLog(
 
   const { data: updated, error } = await supabaseAdmin
     .from("daily_care_logs")
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updates)
     .eq("id", logs[0].id)
     .eq("user_id", userId)
     .select()

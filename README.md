@@ -139,8 +139,34 @@ create table daily_care_logs (
   food_fed text,
   amount text,
   meds_and_comments text,
-  created_at timestamp with time zone default now()
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
 );
+```
+
+If your existing `daily_care_logs` table was created without `updated_at`, run:
+
+```sql
+alter table public.daily_care_logs
+add column if not exists updated_at timestamptz default now();
+
+update public.daily_care_logs
+set updated_at = created_at
+where updated_at is null;
+
+create or replace function public.set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_daily_care_logs_updated_at on public.daily_care_logs;
+
+create trigger trg_daily_care_logs_updated_at
+before update on public.daily_care_logs
+for each row execute function public.set_updated_at();
 ```
 
 ### `dispositions`
