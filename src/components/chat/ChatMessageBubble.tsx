@@ -71,7 +71,7 @@ export function ChatMessageBubble({
         </div>
       )}
       {message.embedded && (
-        <div className="max-w-[90%]">
+        <div className="w-full max-w-[96%]">
           {renderEmbeddedContent(
             message.embedded,
             isProcessing,

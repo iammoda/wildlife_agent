@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import { ParsedIntake } from "@/lib/types";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +14,9 @@ interface IntakeEditModalProps {
   onSave: (data: ParsedIntake) => void;
   mode?: "create" | "edit";
 }
+
+const TEXTAREA_BASE_CLASS =
+  "w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-none overflow-y-auto h-24";
 
 export function IntakeEditModal({
   isOpen,
@@ -50,236 +53,181 @@ export function IntakeEditModal({
       isOpen={isOpen}
       onClose={onClose}
       title={mode === "edit" ? "Edit Intake" : "New Intake"}
-      size="xl"
+      size="2xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input
-            label="Intake Number"
-            value={formData.intake_number || ""}
-            onChange={(e) => handleChange("intake_number", e.target.value)}
-            placeholder="e.g., 2026-001"
-            required
-          />
-          <Input
-            label="Species"
-            value={formData.species || ""}
-            onChange={(e) => handleChange("species", e.target.value)}
-            placeholder="e.g., Eastern Gray Squirrel"
-            required
-          />
-          <Input
-            label="Intake Date"
-            type="datetime-local"
-            value={formatDateTimeLocal(formData.intake_date)}
-            onChange={(e) => handleChange("intake_date", e.target.value)}
-          />
-          <Input
-            label="Quantity"
-            type="number"
-            min="1"
-            value={formData.quantity || 1}
-            onChange={(e) => handleChange("quantity", parseInt(e.target.value))}
-          />
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Sex
-            </label>
-            <select
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <FormSection title="Core Intake">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Input
+              label="Intake Number"
+              value={formData.intake_number || ""}
+              onChange={(e) => handleChange("intake_number", e.target.value)}
+              placeholder="e.g., 2026-001"
+              required
+            />
+            <Input
+              label="Species"
+              value={formData.species || ""}
+              onChange={(e) => handleChange("species", e.target.value)}
+              placeholder="e.g., Eastern Gray Squirrel"
+              required
+            />
+            <Input
+              label="Intake Date"
+              type="datetime-local"
+              value={formatDateTimeLocal(formData.intake_date)}
+              onChange={(e) => handleChange("intake_date", e.target.value)}
+            />
+            <Input
+              label="Quantity"
+              type="number"
+              min="1"
+              value={formData.quantity || 1}
+              onChange={(e) =>
+                handleChange("quantity", Number.parseInt(e.target.value, 10) || 1)
+              }
+            />
+            <SelectField
+              label="Sex"
               value={formData.sex || "Unknown"}
-              onChange={(e) => handleChange("sex", e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none"
-            >
-              {SEX_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Intake Reason
-            </label>
-            <select
+              onChange={(value) => handleChange("sex", value)}
+              options={SEX_OPTIONS}
+            />
+            <SelectField
+              label="Intake Reason"
               value={formData.intake_reason || "Unknown"}
-              onChange={(e) => handleChange("intake_reason", e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none"
-            >
-              {INTAKE_REASON_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => handleChange("intake_reason", value)}
+              options={INTAKE_REASON_OPTIONS}
+            />
           </div>
-          <Input
-            label="Finder Name"
-            value={formData.finder_name || ""}
-            onChange={(e) => handleChange("finder_name", e.target.value)}
-            placeholder="Who found the animal?"
-          />
-          <Input
-            label="Finder Phone"
-            value={formData.finder_phone || ""}
-            onChange={(e) => handleChange("finder_phone", e.target.value)}
-            placeholder="Phone number"
-          />
-          <Input
-            label="Finder Email"
-            type="email"
-            value={formData.finder_email || ""}
-            onChange={(e) => handleChange("finder_email", e.target.value)}
-            placeholder="name@example.com"
-          />
-          <Input
-            label="Found Date"
-            type="datetime-local"
-            value={formatDateTimeLocal(formData.found_date)}
-            onChange={(e) => handleChange("found_date", e.target.value)}
-          />
-          <Input
-            label="Weight"
-            value={formData.weight || ""}
-            onChange={(e) => handleChange("weight", e.target.value)}
-            placeholder="e.g., 45g"
-          />
-          <Input
-            label="Age"
-            value={formData.age || ""}
-            onChange={(e) => handleChange("age", e.target.value)}
-            placeholder="e.g., 3 weeks, Adult"
-          />
-          <Input
-            label="Distress Code"
-            value={formData.distress_code || ""}
-            onChange={(e) => handleChange("distress_code", e.target.value)}
-            placeholder="e.g., A, B, C"
-          />
-          <Input
-            label="Distress Subcode"
-            value={formData.distress_subcode || ""}
-            onChange={(e) => handleChange("distress_subcode", e.target.value)}
-            placeholder="e.g., 1, 2, 3"
-          />
-          <Input
-            label="Donation Amount"
-            value={formData.donation_amount || ""}
-            onChange={(e) => handleChange("donation_amount", e.target.value)}
-            placeholder="e.g., 25.00"
-          />
-          <Input
-            label="Disposition Code"
-            value={formData.disposition || ""}
-            onChange={(e) => handleChange("disposition", e.target.value)}
-            placeholder="e.g., UC, R, E"
-          />
-          <Input
-            label="Disposition Date"
-            type="datetime-local"
-            value={formatDateTimeLocal(formData.disposition_date)}
-            onChange={(e) => handleChange("disposition_date", e.target.value)}
-          />
-        </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Found Location
-            </label>
-            <textarea
-              value={formData.found_location || ""}
-              onChange={(e) => handleChange("found_location", e.target.value)}
-              placeholder="Where was the animal found?"
-              rows={2}
-              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
+          <TextAreaField
+            label="Found Location"
+            value={formData.found_location || ""}
+            onChange={(value) => handleChange("found_location", value)}
+            placeholder="Where was the animal found?"
+          />
+        </FormSection>
+
+        <FormSection title="Finder Details">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Input
+              label="Finder Name"
+              value={formData.finder_name || ""}
+              onChange={(e) => handleChange("finder_name", e.target.value)}
+              placeholder="Who found the animal?"
+            />
+            <Input
+              label="Finder Phone"
+              value={formData.finder_phone || ""}
+              onChange={(e) => handleChange("finder_phone", e.target.value)}
+              placeholder="Phone number"
+            />
+            <Input
+              label="Finder Email"
+              type="email"
+              value={formData.finder_email || ""}
+              onChange={(e) => handleChange("finder_email", e.target.value)}
+              placeholder="name@example.com"
+            />
+            <Input
+              label="Found Date"
+              type="datetime-local"
+              value={formatDateTimeLocal(formData.found_date)}
+              onChange={(e) => handleChange("found_date", e.target.value)}
             />
           </div>
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Finder Address
-            </label>
-            <textarea
-              value={formData.finder_address || ""}
-              onChange={(e) => handleChange("finder_address", e.target.value)}
-              placeholder="Finder mailing or home address"
-              rows={2}
-              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
+
+          <TextAreaField
+            label="Finder Address"
+            value={formData.finder_address || ""}
+            onChange={(value) => handleChange("finder_address", value)}
+            placeholder="Finder mailing or home address"
+          />
+        </FormSection>
+
+        <FormSection title="Animal Condition">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Input
+              label="Weight"
+              value={formData.weight || ""}
+              onChange={(e) => handleChange("weight", e.target.value)}
+              placeholder="e.g., 45g"
+            />
+            <Input
+              label="Age"
+              value={formData.age || ""}
+              onChange={(e) => handleChange("age", e.target.value)}
+              placeholder="e.g., 3 weeks, Adult"
+            />
+            <Input
+              label="Distress Code"
+              value={formData.distress_code || ""}
+              onChange={(e) => handleChange("distress_code", e.target.value)}
+              placeholder="e.g., A, B, C"
+            />
+            <Input
+              label="Distress Subcode"
+              value={formData.distress_subcode || ""}
+              onChange={(e) => handleChange("distress_subcode", e.target.value)}
+              placeholder="e.g., 1, 2, 3"
             />
           </div>
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Food Offered
-            </label>
-            <textarea
-              value={formData.food_offered || ""}
-              onChange={(e) => handleChange("food_offered", e.target.value)}
-              placeholder="Food or formula offered"
-              rows={2}
-              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
+
+          <TextAreaField
+            label="Food Offered"
+            value={formData.food_offered || ""}
+            onChange={(value) => handleChange("food_offered", value)}
+            placeholder="Food or formula offered"
+          />
+        </FormSection>
+
+        <FormSection title="Outcome & Clinical">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Input
+              label="Donation Amount"
+              value={formData.donation_amount || ""}
+              onChange={(e) => handleChange("donation_amount", e.target.value)}
+              placeholder="e.g., 25.00"
+            />
+            <Input
+              label="Disposition Code"
+              value={formData.disposition || ""}
+              onChange={(e) => handleChange("disposition", e.target.value)}
+              placeholder="e.g., UC, R, E"
+            />
+            <Input
+              label="Disposition Date"
+              type="datetime-local"
+              value={formatDateTimeLocal(formData.disposition_date)}
+              onChange={(e) => handleChange("disposition_date", e.target.value)}
             />
           </div>
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Notes
-            </label>
-            <textarea
-              value={formData.notes || ""}
-              onChange={(e) => handleChange("notes", e.target.value)}
-              placeholder="Additional intake notes"
-              rows={2}
-              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
-            />
-          </div>
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Exam Notes
-            </label>
-            <textarea
-              value={formData.exam_notes || ""}
-              onChange={(e) => handleChange("exam_notes", e.target.value)}
-              placeholder="Exam and treatment notes"
-              rows={3}
-              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
-            />
-          </div>
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Description
-            </label>
-            <textarea
+        </FormSection>
+
+        <FormSection title="Notes">
+          <div className="space-y-4">
+            <TextAreaField
+              label="Description"
               value={formData.how_description || ""}
-              onChange={(e) => handleChange("how_description", e.target.value)}
+              onChange={(value) => handleChange("how_description", value)}
               placeholder="How was the animal found? What happened?"
-              rows={3}
-              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
+            />
+            <TextAreaField
+              label="Notes"
+              value={formData.notes || ""}
+              onChange={(value) => handleChange("notes", value)}
+              placeholder="Additional intake notes"
+            />
+            <TextAreaField
+              label="Exam Notes"
+              value={formData.exam_notes || ""}
+              onChange={(value) => handleChange("exam_notes", value)}
+              placeholder="Exam and treatment notes"
             />
           </div>
-        </div>
+        </FormSection>
+
         <div className="section-divider flex justify-end gap-2 pt-3">
           <Button
             type="button"
@@ -295,5 +243,72 @@ export function IntakeEditModal({
         </div>
       </form>
     </Modal>
+  );
+}
+
+interface FormSectionProps {
+  title: string;
+  children: ReactNode;
+}
+
+function FormSection({ title, children }: FormSectionProps) {
+  return (
+    <section className="space-y-4 rounded-xl border p-4" style={{ borderColor: "var(--color-border)" }}>
+      <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-secondary)" }}>
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+interface SelectFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly string[];
+}
+
+function SelectField({ label, value, onChange, options }: SelectFieldProps) {
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--color-text-secondary)" }}>
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+interface TextAreaFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}
+
+function TextAreaField({ label, value, onChange, placeholder }: TextAreaFieldProps) {
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--color-text-secondary)" }}>
+        {label}
+      </label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={TEXTAREA_BASE_CLASS}
+      />
+    </div>
   );
 }

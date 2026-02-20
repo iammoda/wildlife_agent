@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { ParsedIntake } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -32,9 +32,9 @@ export function IntakeConfirmationCard({
   const handleSaveClick = () => {
     if (hasAllRequired) {
       onConfirm();
-    } else {
-      setShowConfirmDialog(true);
+      return;
     }
+    setShowConfirmDialog(true);
   };
 
   const handleConfirmSave = () => {
@@ -44,17 +44,24 @@ export function IntakeConfirmationCard({
 
   return (
     <>
-      <Card variant="bordered" className="space-y-4 animate-fadeIn card-accent-top">
-        <div className="flex items-center justify-between">
-          <h3
-            className="font-title text-lg font-semibold"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            Intake Preview
-          </h3>
+      <Card variant="bordered" className="space-y-5 p-5 animate-fadeIn card-accent-top">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-2">
+            <h3
+              className="font-title text-2xl font-semibold leading-tight"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              Intake Preview
+            </h3>
+            {data.species && (
+              <p className="text-base font-medium" style={{ color: "var(--color-text-primary)" }}>
+                {data.species}
+              </p>
+            )}
+          </div>
           {data.intake_number && (
             <span
-              className="text-xs font-mono px-2.5 py-1 rounded-full"
+              className="text-sm font-mono px-3 py-1.5 rounded-full"
               style={{
                 color: "var(--color-brand-accent)",
                 backgroundColor: "var(--color-brand-light)",
@@ -68,75 +75,71 @@ export function IntakeConfirmationCard({
 
         {!hasAllRequired && (
           <div
-            className="text-sm px-3 py-2 rounded-lg intake-row-accent"
+            className="text-sm px-3 py-2.5 rounded-lg"
             style={{
               backgroundColor:
                 "color-mix(in srgb, var(--color-error) 12%, var(--color-bg-secondary))",
-              color: "var(--color-brand-accent)",
+              color: "var(--color-text-primary)",
               border: "1px solid var(--color-border-light)",
             }}
           >
-            Missing: {missingFields.join(", ")}
+            Missing required fields: {missingFields.join(", ")}
           </div>
         )}
 
-        <div
-          className="grid grid-cols-1 gap-2 rounded-lg p-3 text-sm sm:grid-cols-2"
-          style={{ backgroundColor: "var(--color-bg-secondary)" }}
-        >
-          <Field label="Species" value={data.species} required />
-          <Field label="Quantity" value={data.quantity?.toString()} />
-          <Field label="Sex" value={data.sex} />
-          <Field label="Reason" value={data.intake_reason} required />
-          <Field label="Found Location" value={data.found_location} required />
-          <Field label="Found Date" value={data.found_date} />
-          <Field label="Finder" value={data.finder_name} required />
-          <Field label="Phone" value={data.finder_phone} required />
-          <Field label="Email" value={data.finder_email} />
-          <Field label="Address" value={data.finder_address} />
-          <Field label="Food Offered" value={data.food_offered} />
-          <Field label="Donation" value={data.donation_amount} />
-          <Field label="Disposition" value={data.disposition} />
-          <Field label="Disposition Date" value={data.disposition_date} />
-          <Field label="Weight" value={data.weight} />
-          <Field label="Age" value={data.age} />
-          <Field label="Distress Code" value={formatDistressCode(data)} />
-        </div>
-
-        {data.how_description && (
-          <div className="text-sm intake-row-accent px-3 py-2">
-            <span style={{ color: "var(--color-text-secondary)" }}>
-              Description:{" "}
-            </span>
-            <span style={{ color: "var(--color-text-primary)" }}>
-              {data.how_description}
-            </span>
+        <PreviewSection title="Core Intake">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <DetailField label="Intake Date" value={formatDisplayDate(data.intake_date)} />
+            <DetailField label="Quantity" value={data.quantity?.toString()} />
+            <DetailField label="Sex" value={data.sex} />
+            <DetailField label="Intake Reason" value={data.intake_reason} required />
           </div>
+        </PreviewSection>
+
+        <PreviewSection title="Finder Details">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <DetailField label="Finder Name" value={data.finder_name} required />
+            <DetailField label="Finder Phone" value={data.finder_phone} required />
+            <DetailField label="Finder Email" value={data.finder_email} />
+            <DetailField label="Found Date" value={formatDisplayDate(data.found_date)} />
+            <DetailField label="Found Location" value={data.found_location} required fullWidth />
+            <DetailField label="Finder Address" value={data.finder_address} fullWidth />
+          </div>
+        </PreviewSection>
+
+        <PreviewSection title="Condition & Outcome">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <DetailField label="Weight" value={data.weight} />
+            <DetailField label="Age" value={data.age} />
+            <DetailField label="Distress Code" value={formatDistressCode(data)} />
+            <DetailField label="Food Offered" value={data.food_offered} />
+            <DetailField label="Donation Amount" value={data.donation_amount} />
+            <DetailField label="Disposition Code" value={data.disposition} />
+            <DetailField
+              label="Disposition Date"
+              value={formatDisplayDate(data.disposition_date)}
+            />
+          </div>
+        </PreviewSection>
+
+        {(data.how_description || data.notes || data.exam_notes) && (
+          <PreviewSection title="Notes">
+            <div className="space-y-3">
+              <DetailField
+                label="Description"
+                value={data.how_description}
+                asText
+              />
+              <DetailField label="Notes" value={data.notes} asText />
+              <DetailField label="Exam Notes" value={data.exam_notes} asText />
+            </div>
+          </PreviewSection>
         )}
 
-        {data.notes && (
-          <div className="text-sm intake-row-accent px-3 py-2">
-            <span style={{ color: "var(--color-text-secondary)" }}>Notes: </span>
-            <span style={{ color: "var(--color-text-primary)" }}>{data.notes}</span>
-          </div>
-        )}
-
-        {data.exam_notes && (
-          <div className="text-sm intake-row-accent px-3 py-2">
-            <span style={{ color: "var(--color-text-secondary)" }}>
-              Exam Notes:{" "}
-            </span>
-            <span style={{ color: "var(--color-text-primary)" }}>
-              {data.exam_notes}
-            </span>
-          </div>
-        )}
-
-        <div className="section-divider flex gap-2 pt-3">
+        <div className="section-divider flex flex-wrap gap-2 pt-3">
           <Button
             onClick={onEdit}
             variant="ghost"
-            size="sm"
             className="btn-edit-subtle"
             disabled={isProcessing}
           >
@@ -145,7 +148,6 @@ export function IntakeConfirmationCard({
           <Button
             onClick={handleSaveClick}
             variant="ghost"
-            size="sm"
             className="btn-primary-green"
             disabled={isProcessing}
           >
@@ -193,29 +195,57 @@ export function IntakeConfirmationCard({
   );
 }
 
-interface FieldProps {
+interface PreviewSectionProps {
+  title: string;
+  children: ReactNode;
+}
+
+function PreviewSection({ title, children }: PreviewSectionProps) {
+  return (
+    <section className="space-y-3 rounded-xl border p-3" style={{ borderColor: "var(--color-border-light)" }}>
+      <h4
+        className="text-xs uppercase tracking-[0.08em] font-semibold"
+        style={{ color: "var(--color-text-secondary)" }}
+      >
+        {title}
+      </h4>
+      {children}
+    </section>
+  );
+}
+
+interface DetailFieldProps {
   label: string;
   value?: string | null;
   required?: boolean;
+  fullWidth?: boolean;
+  asText?: boolean;
 }
 
-function Field({ label, value, required }: FieldProps) {
+function DetailField({ label, value, required, fullWidth, asText }: DetailFieldProps) {
   const isEmpty = !value;
   const showMissing = required && isEmpty;
   if (isEmpty && !required) return null;
+
   return (
-    <div className="rounded-md px-2 py-1.5" style={{ backgroundColor: "var(--color-bg-tertiary)" }}>
-      <span className="text-xs uppercase tracking-wide" style={{ color: "var(--color-text-secondary)" }}>
-        {label}:{" "}
-      </span>
+    <div
+      className={`rounded-lg px-3 py-2.5 ${fullWidth ? "md:col-span-2" : ""}`}
+      style={{ backgroundColor: "var(--color-bg-secondary)" }}
+    >
+      <p className="text-xs uppercase tracking-wide" style={{ color: "var(--color-text-secondary)" }}>
+        {label}
+      </p>
       {showMissing ? (
-        <span className="italic text-sm" style={{ color: "var(--color-text-muted)" }}>
+        <p className="italic text-sm mt-1" style={{ color: "var(--color-text-muted)" }}>
           Not provided
-        </span>
+        </p>
       ) : (
-        <span className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+        <p
+          className={`mt-1 text-sm font-medium ${asText ? "whitespace-pre-wrap break-words" : ""}`}
+          style={{ color: "var(--color-text-primary)" }}
+        >
           {value}
-        </span>
+        </p>
       )}
     </div>
   );
@@ -227,4 +257,11 @@ function formatDistressCode(data: ParsedIntake): string | undefined {
     return `${data.distress_code}-${data.distress_subcode}`;
   }
   return data.distress_code;
+}
+
+function formatDisplayDate(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
 }
