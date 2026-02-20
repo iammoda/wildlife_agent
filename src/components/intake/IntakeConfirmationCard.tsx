@@ -44,7 +44,7 @@ export function IntakeConfirmationCard({
 
   return (
     <>
-      <Card variant="bordered" className="space-y-5 p-5 animate-fadeIn card-accent-top">
+      <Card variant="bordered" className="space-y-6 p-6 animate-fadeIn card-accent-top">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
             <h3
@@ -75,7 +75,7 @@ export function IntakeConfirmationCard({
 
         {!hasAllRequired && (
           <div
-            className="text-sm px-3 py-2.5 rounded-lg"
+            className="flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm"
             style={{
               backgroundColor:
                 "color-mix(in srgb, var(--color-error) 12%, var(--color-bg-secondary))",
@@ -83,7 +83,13 @@ export function IntakeConfirmationCard({
               border: "1px solid var(--color-border-light)",
             }}
           >
-            Missing required fields: {missingFields.join(", ")}
+            <WarningIcon />
+            <div>
+              <p className="font-medium">Missing required information</p>
+              <p className="mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                {missingFields.join(", ")}
+              </p>
+            </div>
           </div>
         )}
 
@@ -136,7 +142,7 @@ export function IntakeConfirmationCard({
           </PreviewSection>
         )}
 
-        <div className="section-divider flex flex-wrap gap-2 pt-3">
+        <div className="section-divider flex flex-wrap gap-2 pt-4">
           <Button
             onClick={onEdit}
             variant="ghost"
@@ -202,9 +208,9 @@ interface PreviewSectionProps {
 
 function PreviewSection({ title, children }: PreviewSectionProps) {
   return (
-    <section className="space-y-3 rounded-xl border p-3" style={{ borderColor: "var(--color-border-light)" }}>
+        <section className="space-y-3 rounded-xl border p-4" style={{ borderColor: "var(--color-border-light)" }}>
       <h4
-        className="text-xs uppercase tracking-[0.08em] font-semibold"
+        className="text-sm font-semibold"
         style={{ color: "var(--color-text-secondary)" }}
       >
         {title}
@@ -229,10 +235,10 @@ function DetailField({ label, value, required, fullWidth, asText }: DetailFieldP
 
   return (
     <div
-      className={`rounded-lg px-3 py-2.5 ${fullWidth ? "md:col-span-2" : ""}`}
-      style={{ backgroundColor: "var(--color-bg-secondary)" }}
+      className={`border-b px-0 pb-2.5 ${fullWidth ? "md:col-span-2" : ""}`}
+      style={{ borderColor: "var(--color-border-light)" }}
     >
-      <p className="text-xs uppercase tracking-wide" style={{ color: "var(--color-text-secondary)" }}>
+      <p className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
         {label}
       </p>
       {showMissing ? (
@@ -241,7 +247,7 @@ function DetailField({ label, value, required, fullWidth, asText }: DetailFieldP
         </p>
       ) : (
         <p
-          className={`mt-1 text-sm font-medium ${asText ? "whitespace-pre-wrap break-words" : ""}`}
+          className={`mt-1 text-base font-medium leading-relaxed ${asText ? "whitespace-pre-wrap break-words" : ""}`}
           style={{ color: "var(--color-text-primary)" }}
         >
           {value}
@@ -264,4 +270,21 @@ function formatDisplayDate(value?: string | null): string | undefined {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
+}
+
+function WarningIcon() {
+  return (
+    <svg
+      className="mt-0.5 h-4 w-4 flex-shrink-0"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden="true"
+    >
+      <path d="M12 9v4" strokeLinecap="round" />
+      <path d="M12 17h.01" strokeLinecap="round" />
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+    </svg>
+  );
 }

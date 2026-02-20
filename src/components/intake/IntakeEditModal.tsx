@@ -16,7 +16,7 @@ interface IntakeEditModalProps {
 }
 
 const TEXTAREA_BASE_CLASS =
-  "w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-none overflow-y-auto h-24";
+  "w-full px-4 py-3 rounded-xl input-base focus:outline-none resize-none overflow-y-auto h-28 leading-relaxed";
 
 export function IntakeEditModal({
   isOpen,
@@ -55,7 +55,7 @@ export function IntakeEditModal({
       title={mode === "edit" ? "Edit Intake" : "New Intake"}
       size="2xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-7">
         <FormSection title="Core Intake">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
@@ -72,11 +72,11 @@ export function IntakeEditModal({
               placeholder="e.g., Eastern Gray Squirrel"
               required
             />
-            <Input
+            <DateTimeField
               label="Intake Date"
-              type="datetime-local"
               value={formatDateTimeLocal(formData.intake_date)}
-              onChange={(e) => handleChange("intake_date", e.target.value)}
+              onChange={(value) => handleChange("intake_date", value)}
+              hint="Select date and time"
             />
             <Input
               label="Quantity"
@@ -130,11 +130,11 @@ export function IntakeEditModal({
               onChange={(e) => handleChange("finder_email", e.target.value)}
               placeholder="name@example.com"
             />
-            <Input
+            <DateTimeField
               label="Found Date"
-              type="datetime-local"
               value={formatDateTimeLocal(formData.found_date)}
-              onChange={(e) => handleChange("found_date", e.target.value)}
+              onChange={(value) => handleChange("found_date", value)}
+              hint="Select date and time"
             />
           </div>
 
@@ -196,16 +196,16 @@ export function IntakeEditModal({
               onChange={(e) => handleChange("disposition", e.target.value)}
               placeholder="e.g., UC, R, E"
             />
-            <Input
+            <DateTimeField
               label="Disposition Date"
-              type="datetime-local"
               value={formatDateTimeLocal(formData.disposition_date)}
-              onChange={(e) => handleChange("disposition_date", e.target.value)}
+              onChange={(value) => handleChange("disposition_date", value)}
+              hint="Select date and time"
             />
           </div>
         </FormSection>
 
-        <FormSection title="Notes">
+        <FormSection title="Notes" withDivider={false}>
           <div className="space-y-4">
             <TextAreaField
               label="Description"
@@ -249,12 +249,18 @@ export function IntakeEditModal({
 interface FormSectionProps {
   title: string;
   children: ReactNode;
+  withDivider?: boolean;
 }
 
-function FormSection({ title, children }: FormSectionProps) {
+function FormSection({ title, children, withDivider = true }: FormSectionProps) {
   return (
-    <section className="space-y-4 rounded-xl border p-4" style={{ borderColor: "var(--color-border)" }}>
-      <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-secondary)" }}>
+    <section
+      className={`space-y-4 ${withDivider ? "section-divider pb-6" : ""}`}
+    >
+      <h3
+        className="text-base font-semibold leading-snug"
+        style={{ color: "var(--color-text-primary)" }}
+      >
         {title}
       </h3>
       {children}
@@ -309,6 +315,32 @@ function TextAreaField({ label, value, onChange, placeholder }: TextAreaFieldPro
         placeholder={placeholder}
         className={TEXTAREA_BASE_CLASS}
       />
+    </div>
+  );
+}
+
+interface DateTimeFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  hint: string;
+}
+
+function DateTimeField({ label, value, onChange, hint }: DateTimeFieldProps) {
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--color-text-secondary)" }}>
+        {label}
+      </label>
+      <input
+        type="datetime-local"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none"
+      />
+      <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
+        {hint}
+      </p>
     </div>
   );
 }

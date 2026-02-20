@@ -31,7 +31,7 @@ export function AnimalRecordCard({
     : null;
 
   return (
-    <Card variant="bordered" className="space-y-4 card-accent-top animate-fadeIn">
+    <Card variant="bordered" className="space-y-5 p-5 card-accent-top animate-fadeIn">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <h3 className="font-title text-xl font-semibold text-primary-text">
@@ -54,10 +54,7 @@ export function AnimalRecordCard({
         />
       </div>
 
-      <div
-        className="grid grid-cols-1 gap-2 rounded-lg p-3 text-sm sm:grid-cols-2"
-        style={{ backgroundColor: "var(--color-bg-secondary)" }}
-      >
+      <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <LabelValueRow label="Intake Date" value={formatDate(intake.intake_date)} />
         <LabelValueRow label="Quantity" value={String(intake.quantity)} />
         <LabelValueRow label="Sex" value={intake.sex} />
@@ -135,9 +132,9 @@ export function AnimalRecordCard({
 
 function LabelValueRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md px-2 py-1.5" style={{ backgroundColor: "var(--color-bg-tertiary)" }}>
-      <p className="text-xs uppercase tracking-wide text-secondary-text">{label}</p>
-      <p className="text-sm font-medium text-primary-text">{value}</p>
+    <div className="border-b pb-2.5" style={{ borderColor: "var(--color-border-light)" }}>
+      <p className="text-xs font-medium text-secondary-text">{label}</p>
+      <p className="mt-1 text-base font-medium leading-relaxed text-primary-text">{value}</p>
     </div>
   );
 }
