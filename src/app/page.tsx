@@ -15,6 +15,34 @@ import { CareLogEditModal } from "@/components/intake/CareLogEditModal";
 import { DailyCareLog, ParsedIntake } from "@/lib/types";
 import { useToast } from "@/components/ui/Toast";
 
+function toEditableIntake(data: any): ParsedIntake {
+  return {
+    intake_number: data?.intake_number ?? null,
+    intake_date: data?.intake_date ?? null,
+    species: data?.species ?? null,
+    quantity: data?.quantity ?? null,
+    sex: data?.sex ?? null,
+    intake_reason: data?.intake_reason ?? null,
+    found_location: data?.found_location ?? null,
+    found_date: data?.found_date ?? null,
+    finder_name: data?.finder_name ?? null,
+    finder_phone: data?.finder_phone ?? null,
+    finder_email: data?.finder_email ?? null,
+    finder_address: data?.finder_address ?? null,
+    food_offered: data?.food_offered ?? null,
+    donation_amount: data?.donation_amount ?? null,
+    notes: data?.notes ?? null,
+    disposition: data?.disposition ?? null,
+    disposition_date: data?.disposition_date ?? null,
+    weight: data?.weight ?? null,
+    age: data?.age ?? null,
+    distress_code: data?.distress_code ?? null,
+    distress_subcode: data?.distress_subcode ?? null,
+    exam_notes: data?.exam_notes ?? null,
+    how_description: data?.how_description ?? null,
+  };
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
@@ -88,7 +116,7 @@ export default function HomePage() {
   };
 
   const handleEditExistingIntake = (data: any) => {
-    setEditingIntake(data as ParsedIntake);
+    setEditingIntake(toEditableIntake(data));
     setEditingIntakeId(data.id as string);
     setEditMode("edit");
     setEditModalOpen(true);

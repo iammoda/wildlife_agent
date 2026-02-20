@@ -118,10 +118,19 @@ export interface ParsedIntake {
   found_location?: string | null;
   finder_name?: string | null;
   finder_phone?: string | null;
+  finder_email?: string | null;
+  finder_address?: string | null;
+  found_date?: string | null;
   weight?: string | null;
   age?: string | null;
   distress_code?: string | null;
   distress_subcode?: string | null;
+  food_offered?: string | null;
+  donation_amount?: string | null;
+  notes?: string | null;
+  disposition?: string | null;
+  disposition_date?: string | null;
+  exam_notes?: string | null;
   how_description?: string | null;
   confidence?: number | null;
 }
@@ -161,12 +170,18 @@ export interface Intake {
   found_location?: string | null;
   finder_name?: string | null;
   finder_phone?: string | null;
+  finder_email?: string | null;
+  finder_address?: string | null;
+  found_date?: string | null;
+  food_offered?: string | null;
+  donation_amount?: string | null;
   how_description?: string | null;
   distress_code?: string | null;
   distress_subcode?: string | null;
   disposition?: string | IntakeDisposition | null;
   disposition_date?: string | null;
   notes?: string | null;
+  exam_notes?: string | null;
   created_at?: string;
   updated_at?: string;
 }

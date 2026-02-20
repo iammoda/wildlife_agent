@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import {
+  applyIntakeAndExamUpdates,
+  isRecord,
+} from "@/lib/intake-persistence";
 
 export async function GET(
   request: NextRequest,
@@ -72,27 +76,52 @@ export async function PUT(
     const body = await request.json();
     const { id } = await context.params;
 
-    const { data: intake, error } = await supabaseAdmin
-      .from("intakes")
-      .update({
-        ...body,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .eq("user_id", session.userId)
-      .select()
-      .single();
-
-    if (error || !intake) {
+    if (!isRecord(body)) {
       return jsonResponse(
-        { success: false, error: "Failed to update intake" },
-        { status: 500 }
+        { success: false, error: "Request body must be a JSON object" },
+        { status: 400 }
+      );
+    }
+
+    const { data: existingIntake, error: existingIntakeError } =
+      await supabaseAdmin
+        .from("intakes")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", session.userId)
+        .single();
+
+    if (existingIntakeError || !existingIntake) {
+      return jsonResponse(
+        { success: false, error: "Intake not found" },
+        { status: 404 }
+      );
+    }
+
+    const updateResult = await applyIntakeAndExamUpdates({
+      intakeId: id,
+      userId: session.userId,
+      payload: body,
+    });
+
+    if (!updateResult.success) {
+      const status = updateResult.status ?? 500;
+      const responseBody: Record<string, unknown> = {
+        success: false,
+        error: updateResult.error || "Failed to update intake",
+      };
+      if (updateResult.invalidFields?.length) {
+        responseBody.invalid_fields = updateResult.invalidFields;
+      }
+      return jsonResponse(
+        responseBody,
+        { status }
       );
     }
 
     return jsonResponse({
       success: true,
-      data: intake,
+      data: updateResult.data,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "Unauthorized") {

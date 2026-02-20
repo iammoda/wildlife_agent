@@ -38,15 +38,22 @@ export function IntakeEditModal({
     onClose();
   };
 
+  const formatDateTimeLocal = (value?: string | null): string => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toISOString().slice(0, 16);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={mode === "edit" ? "Edit Intake" : "New Intake"}
-      size="lg"
+      size="xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Input
             label="Intake Number"
             value={formData.intake_number || ""}
@@ -60,6 +67,12 @@ export function IntakeEditModal({
             onChange={(e) => handleChange("species", e.target.value)}
             placeholder="e.g., Eastern Gray Squirrel"
             required
+          />
+          <Input
+            label="Intake Date"
+            type="datetime-local"
+            value={formatDateTimeLocal(formData.intake_date)}
+            onChange={(e) => handleChange("intake_date", e.target.value)}
           />
           <Input
             label="Quantity"
@@ -107,12 +120,6 @@ export function IntakeEditModal({
             </select>
           </div>
           <Input
-            label="Found Location"
-            value={formData.found_location || ""}
-            onChange={(e) => handleChange("found_location", e.target.value)}
-            placeholder="Where was the animal found?"
-          />
-          <Input
             label="Finder Name"
             value={formData.finder_name || ""}
             onChange={(e) => handleChange("finder_name", e.target.value)}
@@ -123,6 +130,19 @@ export function IntakeEditModal({
             value={formData.finder_phone || ""}
             onChange={(e) => handleChange("finder_phone", e.target.value)}
             placeholder="Phone number"
+          />
+          <Input
+            label="Finder Email"
+            type="email"
+            value={formData.finder_email || ""}
+            onChange={(e) => handleChange("finder_email", e.target.value)}
+            placeholder="name@example.com"
+          />
+          <Input
+            label="Found Date"
+            type="datetime-local"
+            value={formatDateTimeLocal(formData.found_date)}
+            onChange={(e) => handleChange("found_date", e.target.value)}
           />
           <Input
             label="Weight"
@@ -148,21 +168,117 @@ export function IntakeEditModal({
             onChange={(e) => handleChange("distress_subcode", e.target.value)}
             placeholder="e.g., 1, 2, 3"
           />
-        </div>
-        <div>
-          <label
-            className="block text-sm font-medium mb-1.5"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
-            Description
-          </label>
-          <textarea
-            value={formData.how_description || ""}
-            onChange={(e) => handleChange("how_description", e.target.value)}
-            placeholder="How was the animal found? What happened?"
-            rows={3}
-            className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-none"
+          <Input
+            label="Donation Amount"
+            value={formData.donation_amount || ""}
+            onChange={(e) => handleChange("donation_amount", e.target.value)}
+            placeholder="e.g., 25.00"
           />
+          <Input
+            label="Disposition Code"
+            value={formData.disposition || ""}
+            onChange={(e) => handleChange("disposition", e.target.value)}
+            placeholder="e.g., UC, R, E"
+          />
+          <Input
+            label="Disposition Date"
+            type="datetime-local"
+            value={formatDateTimeLocal(formData.disposition_date)}
+            onChange={(e) => handleChange("disposition_date", e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              Found Location
+            </label>
+            <textarea
+              value={formData.found_location || ""}
+              onChange={(e) => handleChange("found_location", e.target.value)}
+              placeholder="Where was the animal found?"
+              rows={2}
+              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
+            />
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              Finder Address
+            </label>
+            <textarea
+              value={formData.finder_address || ""}
+              onChange={(e) => handleChange("finder_address", e.target.value)}
+              placeholder="Finder mailing or home address"
+              rows={2}
+              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
+            />
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              Food Offered
+            </label>
+            <textarea
+              value={formData.food_offered || ""}
+              onChange={(e) => handleChange("food_offered", e.target.value)}
+              placeholder="Food or formula offered"
+              rows={2}
+              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
+            />
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              Notes
+            </label>
+            <textarea
+              value={formData.notes || ""}
+              onChange={(e) => handleChange("notes", e.target.value)}
+              placeholder="Additional intake notes"
+              rows={2}
+              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
+            />
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              Exam Notes
+            </label>
+            <textarea
+              value={formData.exam_notes || ""}
+              onChange={(e) => handleChange("exam_notes", e.target.value)}
+              placeholder="Exam and treatment notes"
+              rows={3}
+              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
+            />
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              Description
+            </label>
+            <textarea
+              value={formData.how_description || ""}
+              onChange={(e) => handleChange("how_description", e.target.value)}
+              placeholder="How was the animal found? What happened?"
+              rows={3}
+              className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-y"
+            />
+          </div>
         </div>
         <div className="section-divider flex justify-end gap-2 pt-3">
           <Button

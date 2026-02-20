@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { openai } from "@/lib/openai";
 import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { applyIntakeAndExamUpdates } from "@/lib/intake-persistence";
 import {
   CARE_LOG_PARSING_PROMPT,
   INTENT_CLASSIFICATION_PROMPT,
@@ -898,12 +899,31 @@ async function handleEditIntake(
     };
   }
 
+  const { data: latestExam } = await supabaseAdmin
+    .from("patient_exams")
+    .select("weight, age, distress_code, distress_subcode, treatment_notes")
+    .eq("intake_id", intake.id)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const editableIntake = {
+    ...intake,
+    weight: latestExam?.weight ?? null,
+    age: latestExam?.age ?? null,
+    distress_code: latestExam?.distress_code ?? intake.distress_code ?? null,
+    distress_subcode:
+      latestExam?.distress_subcode ?? intake.distress_subcode ?? null,
+    exam_notes: latestExam?.treatment_notes ?? null,
+  };
+
   return {
     response: {
       message: `Here's intake ${intake.intake_number}. Click Edit to make changes:`,
       embedded: {
         type: "intake_edit",
-        data: intake,
+        data: editableIntake,
       },
     },
     newContext: {
@@ -991,26 +1011,33 @@ async function handleUpdateIntake(
     };
   }
 
-  const { data: updated, error } = await supabaseAdmin
-    .from("intakes")
-    .update({
-      ...fieldsToUpdate,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", intake.id)
-    .eq("user_id", userId)
-    .select()
-    .single();
+  const updateResult = await applyIntakeAndExamUpdates({
+    intakeId: intake.id,
+    userId,
+    payload: fieldsToUpdate,
+  });
 
-  if (error || !updated) {
+  if (!updateResult.success) {
+    if (updateResult.status === 400 && updateResult.invalidFields?.length) {
+      return {
+        response: {
+          message: `I can't update these fields: ${updateResult.invalidFields.join(
+            ", "
+          )}.`,
+        },
+      };
+    }
     return {
       response: {
-        message: "Failed to update the intake. Please try again.",
+        message: updateResult.error || "Failed to update the intake. Please try again.",
       },
     };
   }
 
-  const changedFields = Object.keys(fieldsToUpdate).join(", ");
+  const updated = updateResult.data as any;
+  const changedFields = (updateResult.changedFields || Object.keys(fieldsToUpdate)).join(
+    ", "
+  );
   return {
     response: {
       message: `Updated ${changedFields} for intake ${updated.intake_number}.`,

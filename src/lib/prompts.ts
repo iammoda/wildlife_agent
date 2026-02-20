@@ -129,10 +129,19 @@ EXTRACT THESE FIELDS (use null for missing/unmentioned fields):
 | weight | Weight with unit | "45g", "2.5 lbs", "350 grams" |
 | intake_reason | Why admitted | "Orphaned", "Injured", "Cat attack", "Hit by car", "Fell from nest" |
 | found_location | Where found (be specific) | "Central Park near 72nd St", "123 Main St backyard" |
+| found_date | When found | "2026-02-19", "2026-02-19T14:30" |
 | finder_name | Name of person who found/brought animal | "John Smith", "Jane Doe" |
 | finder_phone | Contact phone number | "555-123-4567", "(555) 123-4567" |
+| finder_email | Finder email address | "name@example.com" |
+| finder_address | Finder mailing/home address | "123 Main St, City, State" |
+| food_offered | Food offered at intake | "Esbilac 2ml", "wet cat food" |
+| donation_amount | Donation amount if provided | "25", "25.00" |
+| notes | Additional intake notes | "bite marks on left leg" |
+| disposition | Current/initial disposition code | "UC", "R", "E" |
+| disposition_date | Date/time of disposition if known | "2026-02-20", "2026-02-20T09:00" |
 | distress_code | Condition code if mentioned | "A", "B", "C", "D" |
 | distress_subcode | Subcode if mentioned | "1", "2", "3" |
+| exam_notes | Exam notes/treatment notes | "Exam by Dr. Lee; mild dehydration" |
 | how_description | Narrative of circumstances | "Found on sidewalk, unable to fly, no visible injuries" |
 EXTRACTION RULES:
 - Extract ONLY information explicitly stated or clearly implied
@@ -140,6 +149,7 @@ EXTRACTION RULES:
 - For species, use common name (e.g., "Eastern Gray Squirrel" not "Sciurus carolinensis")
 - Normalize phone numbers to digits (remove formatting)
 - If multiple animals, set quantity accordingly
+- If donation amount is mentioned, return numeric text without currency symbols when possible
 - If the user mentions "today", "yesterday", "this morning", etc., interpret relative to the current date
 - Default intake_date to today if not specified
 Respond with a JSON object containing the extracted fields.`;
@@ -162,9 +172,12 @@ MERGE RULES:
 4. Extract new information using the same field definitions as initial parsing
 FIELDS TO CONSIDER:
 - species, quantity, sex, age, weight
-- intake_reason, found_location
-- finder_name, finder_phone
+- intake_reason, found_location, found_date
+- finder_name, finder_phone, finder_email, finder_address
+- food_offered, donation_amount
+- notes, disposition, disposition_date
 - distress_code, distress_subcode
+- exam_notes
 - how_description (append new info if field exists)
 Respond with the complete merged intake as a JSON object.`;
 
@@ -205,11 +218,21 @@ FIELD MAPPING:
 - "sex" - Male, Female, Unknown
 - "intake_reason" - Why admitted (Injured, Orphaned, Sick, etc.)
 - "found_location" - Where animal was found
+- "found_date" - When animal was found
 - "finder_name" - Name of person who found/brought animal
 - "finder_phone" - Finder's phone number
+- "finder_email" - Finder's email
+- "finder_address" - Finder's address
+- "food_offered" - Food offered
+- "donation_amount" - Donation amount
 - "weight" - Animal's weight
 - "age" - Animal's age or life stage
-- "notes" - Additional notes
+- "distress_code" - Distress code
+- "distress_subcode" - Distress subcode
+- "disposition" - Disposition code
+- "disposition_date" - Disposition date
+- "notes" - Additional intake notes
+- "exam_notes" - Exam/treatment notes
 Respond with JSON:
 {
   "intake_number": "extracted number exactly as said",

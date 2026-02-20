@@ -89,8 +89,15 @@ export function IntakeConfirmationCard({
           <Field label="Sex" value={data.sex} />
           <Field label="Reason" value={data.intake_reason} required />
           <Field label="Found Location" value={data.found_location} required />
+          <Field label="Found Date" value={data.found_date} />
           <Field label="Finder" value={data.finder_name} required />
           <Field label="Phone" value={data.finder_phone} required />
+          <Field label="Email" value={data.finder_email} />
+          <Field label="Address" value={data.finder_address} />
+          <Field label="Food Offered" value={data.food_offered} />
+          <Field label="Donation" value={data.donation_amount} />
+          <Field label="Disposition" value={data.disposition} />
+          <Field label="Disposition Date" value={data.disposition_date} />
           <Field label="Weight" value={data.weight} />
           <Field label="Age" value={data.age} />
           <Field label="Distress Code" value={formatDistressCode(data)} />
@@ -103,6 +110,24 @@ export function IntakeConfirmationCard({
             </span>
             <span style={{ color: "var(--color-text-primary)" }}>
               {data.how_description}
+            </span>
+          </div>
+        )}
+
+        {data.notes && (
+          <div className="text-sm intake-row-accent px-3 py-2">
+            <span style={{ color: "var(--color-text-secondary)" }}>Notes: </span>
+            <span style={{ color: "var(--color-text-primary)" }}>{data.notes}</span>
+          </div>
+        )}
+
+        {data.exam_notes && (
+          <div className="text-sm intake-row-accent px-3 py-2">
+            <span style={{ color: "var(--color-text-secondary)" }}>
+              Exam Notes:{" "}
+            </span>
+            <span style={{ color: "var(--color-text-primary)" }}>
+              {data.exam_notes}
             </span>
           </div>
         )}

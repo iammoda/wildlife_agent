@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { incrementIntakeNumber } from "@/lib/utils";
+import {
+  hydrateIntakeWithLatestExam,
+  splitIntakeAndExamUpdates,
+  upsertLatestExamForIntake,
+} from "@/lib/intake-persistence";
 
 async function getNextIntakeNumber(
   userId: string,
@@ -144,6 +149,8 @@ export async function POST(request: NextRequest) {
           food_offered: body.food_offered,
           donation_amount: body.donation_amount,
           notes: body.notes,
+          disposition: body.disposition,
+          disposition_date: body.disposition_date,
         })
         .select()
         .single();
@@ -193,21 +200,40 @@ export async function POST(request: NextRequest) {
       })
       .eq("user_id", session.userId);
 
-    if (body.weight || body.age || body.distress_code || body.exam_notes) {
-      await supabaseAdmin.from("patient_exams").insert({
-        user_id: session.userId,
-        intake_id: intake.id,
-        weight: body.weight,
-        age: body.age,
-        distress_code: body.distress_code,
-        distress_subcode: body.distress_subcode,
-        treatment_notes: body.exam_notes,
+    const { examUpdates } = splitIntakeAndExamUpdates(body);
+    if (Object.keys(examUpdates).length > 0) {
+      const { error: examError } = await upsertLatestExamForIntake({
+        intakeId: intake.id,
+        userId: session.userId,
+        examUpdates,
       });
+      if (examError) {
+        console.error("Error saving intake exam data:", examError);
+        return jsonResponse(
+          { success: false, error: "Failed to save intake exam data" },
+          { status: 500 }
+        );
+      }
+    }
+
+    const { data: hydratedIntake, error: hydrateError } =
+      await hydrateIntakeWithLatestExam({
+        intake: intake as Record<string, unknown>,
+        intakeId: intake.id,
+        userId: session.userId,
+      });
+
+    if (hydrateError || !hydratedIntake) {
+      console.error("Error hydrating intake after create:", hydrateError);
+      return jsonResponse(
+        { success: false, error: "Failed to load saved intake data" },
+        { status: 500 }
+      );
     }
 
     return jsonResponse({
       success: true,
-      data: intake,
+      data: hydratedIntake,
     });
   } catch (error) {
     console.error("Create intake error:", error);
