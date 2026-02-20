@@ -70,10 +70,10 @@ export function CareLogEditModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         {initialData.intakeNumber && (
           <div
-            className="text-sm px-3 py-2 rounded-lg"
+            className="text-sm px-3 py-2 rounded-lg intake-row-accent"
             style={{
               backgroundColor: "var(--color-brand-light)",
-              color: "var(--color-brand-primary)",
+              color: "var(--color-brand-accent)",
             }}
           >
             Intake: {initialData.intakeNumber}
@@ -109,7 +109,7 @@ export function CareLogEditModal({
         <div>
           <label
             className="block text-sm font-medium mb-1.5"
-            style={{ color: "var(--color-text-primary)" }}
+            style={{ color: "var(--color-text-secondary)" }}
           >
             Medications & Comments
           </label>
@@ -123,11 +123,16 @@ export function CareLogEditModal({
             className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-none"
           />
         </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
+        <div className="section-divider flex justify-end gap-2 pt-3">
+          <Button
+            type="button"
+            variant="ghost"
+            className="btn-edit-subtle"
+            onClick={onClose}
+          >
             Cancel
           </Button>
-          <Button type="submit">
+          <Button type="submit" variant="ghost" className="btn-primary-green">
             {mode === "edit" ? "Save Changes" : "Add Care Log"}
           </Button>
         </div>

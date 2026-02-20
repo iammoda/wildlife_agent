@@ -71,7 +71,7 @@ export function IntakeEditModal({
           <div>
             <label
               className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-primary)" }}
+              style={{ color: "var(--color-text-secondary)" }}
             >
               Sex
             </label>
@@ -90,7 +90,7 @@ export function IntakeEditModal({
           <div>
             <label
               className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-primary)" }}
+              style={{ color: "var(--color-text-secondary)" }}
             >
               Intake Reason
             </label>
@@ -152,7 +152,7 @@ export function IntakeEditModal({
         <div>
           <label
             className="block text-sm font-medium mb-1.5"
-            style={{ color: "var(--color-text-primary)" }}
+            style={{ color: "var(--color-text-secondary)" }}
           >
             Description
           </label>
@@ -164,11 +164,16 @@ export function IntakeEditModal({
             className="w-full px-4 py-2.5 rounded-xl input-base focus:outline-none resize-none"
           />
         </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
+        <div className="section-divider flex justify-end gap-2 pt-3">
+          <Button
+            type="button"
+            variant="ghost"
+            className="btn-edit-subtle"
+            onClick={onClose}
+          >
             Cancel
           </Button>
-          <Button type="submit">
+          <Button type="submit" variant="ghost" className="btn-primary-green">
             {mode === "edit" ? "Save Changes" : "Save Intake"}
           </Button>
         </div>

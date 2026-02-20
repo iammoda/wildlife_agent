@@ -48,53 +48,87 @@ export function CareLogConfirmation({
 
   if (isUndone) {
     return (
-      <Card variant="bordered">
+      <Card variant="bordered" className="animate-fadeIn">
         <p className="text-sm text-primary-text">Care log undone.</p>
       </Card>
     );
   }
 
   return (
-    <Card variant="bordered" className="space-y-2">
+    <Card variant="bordered" className="space-y-3 animate-fadeIn card-accent-top">
       <div className="flex items-center gap-2">
-        <span className="text-sm" style={{ color: "var(--color-brand-primary)" }}>
-          OK
+        <span className="success-dot" aria-hidden="true">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="inline-icon"
+          >
+            <path
+              d="M4 8.3L6.8 11L12 5.8"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </span>
-        <span className="font-medium" style={{ color: "var(--color-text-primary)" }}>
+        <span className="text-base font-semibold" style={{ color: "var(--color-text-primary)" }}>
           Care log added for intake {intakeNumber} ({species})
         </span>
       </div>
       <div
-        className="text-sm grid grid-cols-2 gap-x-4 gap-y-1"
+        className="text-sm space-y-2"
         style={{ color: "var(--color-text-secondary)" }}
       >
-        {log.weight && <span>Weight: {log.weight}</span>}
-        {log.food_fed && (
-          <span>
-            Fed: {log.food_fed}
-            {log.amount && ` (${log.amount})`}
-          </span>
+        {log.weight && (
+          <DetailRow label="Weight" value={log.weight} />
         )}
-        <span className="col-span-2">{formatDateTime(log.log_date)}</span>
+        {log.food_fed && (
+          <DetailRow
+            label="Fed"
+            value={`${log.food_fed}${log.amount ? ` (${log.amount})` : ""}`}
+          />
+        )}
+        <DetailRow label="Logged" value={formatDateTime(log.log_date)} />
         {log.meds_and_comments && (
-          <span className="col-span-2">{log.meds_and_comments}</span>
+          <DetailRow label="Notes" value={log.meds_and_comments} />
         )}
       </div>
       {canUndo && (
-        <div className="flex items-center gap-2 pt-1">
+        <div className="section-divider flex items-center gap-2 pt-2">
           <Button
             variant="ghost"
             size="sm"
+            className="btn-edit-subtle"
             onClick={handleUndo}
             disabled={isProcessing}
           >
             {isProcessing ? "Undoing..." : "Undo"}
           </Button>
-          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-            ({secondsLeft}s)
+          <span
+            className="text-xs intake-pill"
+            style={{
+              backgroundColor: "var(--color-bg-tertiary)",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            {secondsLeft}s remaining
           </span>
         </div>
       )}
     </Card>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      className="flex items-start justify-between gap-3 border-b pb-1 last:border-0"
+      style={{ borderColor: "var(--color-border-light)" }}
+    >
+      <span className="text-xs uppercase tracking-wide text-muted">{label}</span>
+      <span className="text-right text-primary-text">{value}</span>
+    </div>
   );
 }

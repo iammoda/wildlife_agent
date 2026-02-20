@@ -44,20 +44,21 @@ export function IntakeConfirmationCard({
 
   return (
     <>
-      <Card variant="bordered" className="space-y-4">
+      <Card variant="bordered" className="space-y-4 animate-fadeIn card-accent-top">
         <div className="flex items-center justify-between">
           <h3
-            className="font-semibold"
+            className="font-title text-lg font-semibold"
             style={{ color: "var(--color-text-primary)" }}
           >
             Intake Preview
           </h3>
           {data.intake_number && (
             <span
-              className="text-sm font-mono px-2 py-1 rounded-lg"
+              className="text-xs font-mono px-2.5 py-1 rounded-full"
               style={{
-                color: "var(--color-brand-primary)",
+                color: "var(--color-brand-accent)",
                 backgroundColor: "var(--color-brand-light)",
+                border: "1px solid var(--color-border)",
               }}
             >
               {data.intake_number}
@@ -67,18 +68,22 @@ export function IntakeConfirmationCard({
 
         {!hasAllRequired && (
           <div
-            className="text-sm px-3 py-2 rounded-lg"
+            className="text-sm px-3 py-2 rounded-lg intake-row-accent"
             style={{
-              backgroundColor: "rgba(180, 83, 9, 0.15)",
-              color: "#F59E0B",
-              border: "1px solid rgba(180, 83, 9, 0.3)",
+              backgroundColor:
+                "color-mix(in srgb, var(--color-error) 12%, var(--color-bg-secondary))",
+              color: "var(--color-brand-accent)",
+              border: "1px solid var(--color-border-light)",
             }}
           >
             Missing: {missingFields.join(", ")}
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div
+          className="grid grid-cols-1 gap-2 rounded-lg p-3 text-sm sm:grid-cols-2"
+          style={{ backgroundColor: "var(--color-bg-secondary)" }}
+        >
           <Field label="Species" value={data.species} required />
           <Field label="Quantity" value={data.quantity?.toString()} />
           <Field label="Sex" value={data.sex} />
@@ -92,7 +97,7 @@ export function IntakeConfirmationCard({
         </div>
 
         {data.how_description && (
-          <div className="text-sm">
+          <div className="text-sm intake-row-accent px-3 py-2">
             <span style={{ color: "var(--color-text-secondary)" }}>
               Description:{" "}
             </span>
@@ -102,11 +107,23 @@ export function IntakeConfirmationCard({
           </div>
         )}
 
-        <div className="flex gap-2 pt-2">
-          <Button onClick={onEdit} variant="secondary" size="sm" disabled={isProcessing}>
+        <div className="section-divider flex gap-2 pt-3">
+          <Button
+            onClick={onEdit}
+            variant="ghost"
+            size="sm"
+            className="btn-edit-subtle"
+            disabled={isProcessing}
+          >
             Edit
           </Button>
-          <Button onClick={handleSaveClick} size="sm" disabled={isProcessing}>
+          <Button
+            onClick={handleSaveClick}
+            variant="ghost"
+            size="sm"
+            className="btn-primary-green"
+            disabled={isProcessing}
+          >
             {isProcessing ? "Saving..." : "Save Intake"}
           </Button>
         </div>
@@ -162,14 +179,18 @@ function Field({ label, value, required }: FieldProps) {
   const showMissing = required && isEmpty;
   if (isEmpty && !required) return null;
   return (
-    <div>
-      <span style={{ color: "var(--color-text-secondary)" }}>{label}: </span>
+    <div className="rounded-md px-2 py-1.5" style={{ backgroundColor: "var(--color-bg-tertiary)" }}>
+      <span className="text-xs uppercase tracking-wide" style={{ color: "var(--color-text-secondary)" }}>
+        {label}:{" "}
+      </span>
       {showMissing ? (
-        <span className="italic" style={{ color: "var(--color-text-muted)" }}>
+        <span className="italic text-sm" style={{ color: "var(--color-text-muted)" }}>
           Not provided
         </span>
       ) : (
-        <span style={{ color: "var(--color-text-primary)" }}>{value}</span>
+        <span className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+          {value}
+        </span>
       )}
     </div>
   );

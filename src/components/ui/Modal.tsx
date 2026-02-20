@@ -32,7 +32,7 @@ export function Modal({
         onClick={onClose}
       />
       <div
-        className={`relative w-full ${sizeStyles[size]} rounded-2xl shadow-xl`}
+        className={`relative w-full ${sizeStyles[size]} rounded-2xl shadow-xl animate-fadeIn`}
         style={{
           backgroundColor: "var(--color-bg-elevated)",
           border: "1px solid var(--color-border)",
@@ -44,7 +44,7 @@ export function Modal({
             style={{ borderColor: "var(--color-border)" }}
           >
             <h2
-              className="text-lg font-semibold"
+              className="text-lg font-semibold font-title"
               style={{ color: "var(--color-text-primary)" }}
             >
               {title}

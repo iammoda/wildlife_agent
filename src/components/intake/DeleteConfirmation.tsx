@@ -20,16 +20,19 @@ export function DeleteConfirmation({
 }: DeleteConfirmationProps) {
   const label = recordType === "intake" ? "intake record" : "care log";
   return (
-    <Card variant="bordered" className="space-y-4">
+    <Card variant="bordered" className="space-y-4 animate-fadeIn card-accent-top">
       <div className="flex items-start gap-3">
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: "rgba(239, 68, 68, 0.1)" }}
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--color-error) 16%, transparent)",
+          }}
         >
           <svg
             className="w-5 h-5"
             fill="none"
-            stroke="#EF4444"
+            stroke="var(--color-error)"
             viewBox="0 0 24 24"
           >
             <path
@@ -41,7 +44,7 @@ export function DeleteConfirmation({
           </svg>
         </div>
         <div>
-          <h3 className="font-semibold text-primary-text">
+          <h3 className="font-title text-lg font-semibold text-primary-text">
             Delete {label}?
           </h3>
           <p className="text-sm text-secondary-text mt-1">
@@ -50,19 +53,21 @@ export function DeleteConfirmation({
           </p>
         </div>
       </div>
-      <div className="flex gap-2 justify-end">
+      <div className="section-divider flex gap-2 justify-end pt-2">
         <Button
-          variant="secondary"
+          variant="ghost"
           size="sm"
+          className="btn-edit-subtle"
           onClick={onCancel}
           disabled={isProcessing}
         >
           Cancel
         </Button>
         <Button
+          variant="ghost"
           size="sm"
           onClick={onConfirm}
-          className="bg-red-600 hover:bg-red-700"
+          className="btn-delete-ghost"
           disabled={isProcessing}
         >
           {isProcessing ? "Deleting..." : "Delete"}
