@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       .replace("{additionalText}", additionalText);
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1",
       messages: [
         { role: "system", content: prompt },
         { role: "user", content: additionalText },

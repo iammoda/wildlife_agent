@@ -78,8 +78,20 @@ Classify the user's message into ONE of these intents:
     - "remove care log for intake [number]", "delete the care log from [date] for [number]"
     - params: { intake_number: string, log_date?: string }
 12. "statistics" - User wants stats about their intakes
-    - "how many [species]", "statistics", "numbers"
-    - params: { metric: string, species_filter?: string }
+    - "how many [species]", "statistics", "numbers", "chart", "breakdown", "trend"
+    - params: {
+        chart_type?: "pie" | "bar" | "line",
+        group_by?: "species" | "intake_reason" | "month" | "disposition" | "distress_code",
+        time_range?: "2026" | "this_month" | "this_year" | "last30_days" | "last90_days" | "all_time",
+        time_start?: string,
+        time_end?: string,
+        metric?: "count" | "trend" | "breakdown",
+        species_filter?: string
+      }
+    - Examples:
+      - "Create a pie chart for intakes in 2026 by reason" -> { type: "statistics", params: { chart_type: "pie", group_by: "intake_reason", time_range: "2026" } }
+      - "Monthly intake trend" -> { type: "statistics", params: { chart_type: "line", group_by: "month", metric: "trend" } }
+      - "How many squirrels this year?" -> { type: "statistics", params: { metric: "count", species_filter: "squirrel", time_range: "this_year" } }
 13. "help" - User asking what the system can do
     - "help", "what can you do", "how do I"
 14. "quick_status" - User wants a quick overview of all intakes

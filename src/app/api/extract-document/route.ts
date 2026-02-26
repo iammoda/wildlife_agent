@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     const mimeType = imageFile.type || "image/jpeg";
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1",
       messages: [
         {
           role: "system",

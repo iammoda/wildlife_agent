@@ -7,20 +7,27 @@ import { Button } from "@/components/ui/Button";
 
 interface CareLogsListProps {
   logs: DailyCareLog[];
+  totalCount: number;
   onEditLog?: (log: DailyCareLog) => void;
   onDeleteLog?: (logId: string) => void;
 }
 
 export function CareLogsList({
   logs,
+  totalCount,
   onEditLog,
   onDeleteLog,
 }: CareLogsListProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(5);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    setVisibleCount(5);
+  }, [logs.length]);
 
   const formatLocalDateTime = (input: string | Date) => {
     const date = typeof input === "string" ? new Date(input) : input;
@@ -44,26 +51,28 @@ export function CareLogsList({
     );
   }
   return (
-    <Card variant="bordered" className="space-y-3 animate-fadeIn">
+    <Card variant="bordered" className="space-y-2 animate-fadeIn">
       <h3 className="flex items-center gap-2 font-title text-lg font-semibold text-primary-text">
         <LeafIcon />
-        Care Logs
+        <span>
+          Care Logs · Showing {Math.min(visibleCount, logs.length)} of{" "}
+          {totalCount > logs.length ? totalCount : logs.length}
+        </span>
       </h3>
-      <div className="space-y-3">
-        {logs.map((log) => (
+      <div className="space-y-2">
+        {logs.slice(0, visibleCount).map((log) => (
           <div
             key={log.id}
-            className="intake-row-accent border-b pb-3 pl-3 pr-2 pt-2 last:pb-0 last:border-0"
+            className="intake-row-accent border-b py-2 px-3 last:border-0"
             style={{ borderColor: "var(--color-border-light)" }}
           >
-            <div className="meta-row mb-1 text-xs text-secondary-text">
-              <ClockIcon />
-              <span suppressHydrationWarning>
-                {isMounted ? formatLocalDateTime(log.log_date) : ""}
-              </span>
-            </div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium text-primary-text">Daily Check</span>
+            <div className="flex items-center justify-between mb-1 text-xs text-secondary-text">
+              <div className="meta-row">
+                <ClockIcon />
+                <span suppressHydrationWarning>
+                  {isMounted ? formatLocalDateTime(log.log_date) : ""}
+                </span>
+              </div>
               {log.weight && (
                 <span className="weight-pill">
                   {log.weight}
@@ -81,7 +90,7 @@ export function CareLogsList({
               {log.meds_and_comments && <p className="italic text-muted">{log.meds_and_comments}</p>}
             </div>
             {(onEditLog || onDeleteLog) && (
-              <div className="flex gap-2 mt-2">
+              <div className="flex gap-2 mt-2 ml-auto justify-end">
                 {onEditLog && (
                   <Button
                     variant="ghost"
@@ -107,6 +116,17 @@ export function CareLogsList({
           </div>
         ))}
       </div>
+      {visibleCount < logs.length && (
+        <button
+          onClick={() =>
+            setVisibleCount((prev) => Math.min(prev + 5, logs.length))
+          }
+          className="w-full py-2 text-xs text-center rounded-lg btn-edit-subtle"
+        >
+          Show {Math.min(5, logs.length - visibleCount)} more (
+          {logs.length - visibleCount} remaining)
+        </button>
+      )}
     </Card>
   );
 }

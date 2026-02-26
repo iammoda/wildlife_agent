@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { IntakeWithRelations } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { formatDate } from "@/lib/utils";
@@ -7,15 +8,18 @@ import { getDispositionInfo } from "@/lib/constants";
 
 interface AnimalsInCareListProps {
   animals: IntakeWithRelations[];
+  totalCount: number;
   mode?: "under_care" | "all_intakes";
   statusFilter?: string;
 }
 
 export function AnimalsInCareList({
   animals,
+  totalCount,
   mode = "under_care",
   statusFilter,
 }: AnimalsInCareListProps) {
+  const [visibleCount, setVisibleCount] = useState(5);
   const title = mode === "all_intakes" ? "All Intakes" : "Animals Under Care";
   const emptyMessage =
     mode === "all_intakes"
@@ -25,6 +29,10 @@ export function AnimalsInCareList({
       : statusFilter
         ? `No under-care animals found with status ${statusFilter}.`
         : "No animals currently under care.";
+
+  useEffect(() => {
+    setVisibleCount(5);
+  }, [animals.length]);
 
   if (animals.length === 0) {
     return (
@@ -49,11 +57,11 @@ export function AnimalsInCareList({
             color: "var(--color-brand-accent)",
           }}
         >
-          {animals.length}
+          {totalCount}
         </span>
       </div>
-      <div className="space-y-2">
-        {animals.map((animal) => {
+      <div className="space-y-1.5">
+        {animals.slice(0, visibleCount).map((animal) => {
           const relationDisposition = animal.dispositions;
           const relationCode = Array.isArray(relationDisposition)
             ? relationDisposition[0]?.disposition_code
@@ -100,6 +108,22 @@ export function AnimalsInCareList({
           );
         })}
       </div>
+      {visibleCount < animals.length && (
+        <button
+          onClick={() =>
+            setVisibleCount((prev) => Math.min(prev + 5, animals.length))
+          }
+          className="w-full py-2 text-xs text-center rounded-lg btn-edit-subtle"
+        >
+          Show {Math.min(5, animals.length - visibleCount)} more (
+          {animals.length - visibleCount} remaining)
+        </button>
+      )}
+      {totalCount > animals.length && (
+        <p className="text-xs text-muted">
+          Showing {animals.length} of {totalCount} - try narrowing your search.
+        </p>
+      )}
       <p className="hint-row text-xs">
         <svg
           viewBox="0 0 16 16"

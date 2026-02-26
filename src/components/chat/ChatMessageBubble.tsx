@@ -145,7 +145,8 @@ function renderEmbeddedContent(
     case "care_logs":
       return (
         <CareLogsList
-          logs={embedded.data}
+          logs={embedded.data.logs}
+          totalCount={embedded.data.totalCount}
           onEditLog={(log) => onEditCareLog?.(log)}
           onDeleteLog={(logId) => onDeleteCareLog?.(logId)}
         />
@@ -154,6 +155,7 @@ function renderEmbeddedContent(
       return (
         <CareLogsList
           logs={[embedded.data]}
+          totalCount={1}
           onEditLog={(log) => onEditCareLog?.(log)}
           onDeleteLog={(logId) => onDeleteCareLog?.(logId)}
         />
@@ -172,6 +174,7 @@ function renderEmbeddedContent(
       return (
         <AnimalsInCareList
           animals={embedded.data.items}
+          totalCount={embedded.data.totalCount}
           mode={embedded.data.mode}
           statusFilter={embedded.data.statusFilter}
         />

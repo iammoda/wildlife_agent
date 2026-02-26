@@ -55,7 +55,7 @@ export function CareLogConfirmation({
   }
 
   return (
-    <Card variant="bordered" className="space-y-3 animate-fadeIn card-accent-top">
+    <Card variant="bordered" className="space-y-2 animate-fadeIn card-accent-top">
       <div className="flex items-center gap-2">
         <span className="success-dot" aria-hidden="true">
           <svg
@@ -77,26 +77,30 @@ export function CareLogConfirmation({
           Care log added for intake {intakeNumber} ({species})
         </span>
       </div>
-      <div
-        className="text-sm space-y-2"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        {log.weight && (
-          <DetailRow label="Weight" value={log.weight} />
+      <div className="text-sm space-y-1" style={{ color: "var(--color-text-secondary)" }}>
+        {(log.weight || log.food_fed) && (
+          <p>
+            {log.weight && <DetailRow label="Weight" value={log.weight} />}
+            {log.weight && log.food_fed && <span> · </span>}
+            {log.food_fed && (
+              <DetailRow
+                label="Fed"
+                value={`${log.food_fed}${log.amount ? ` (${log.amount})` : ""}`}
+              />
+            )}
+          </p>
         )}
-        {log.food_fed && (
-          <DetailRow
-            label="Fed"
-            value={`${log.food_fed}${log.amount ? ` (${log.amount})` : ""}`}
-          />
-        )}
-        <DetailRow label="Logged" value={formatDateTime(log.log_date)} />
+        <p>
+          <DetailRow label="Logged" value={formatDateTime(log.log_date)} />
+        </p>
         {log.meds_and_comments && (
-          <DetailRow label="Notes" value={log.meds_and_comments} />
+          <p>
+            <DetailRow label="Notes" value={log.meds_and_comments} />
+          </p>
         )}
       </div>
       {canUndo && (
-        <div className="section-divider flex items-center gap-2 pt-2">
+        <div className="section-divider flex items-center gap-2 pt-1">
           <Button
             variant="ghost"
             size="sm"
@@ -123,12 +127,9 @@ export function CareLogConfirmation({
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className="flex items-start justify-between gap-3 border-b pb-1 last:border-0"
-      style={{ borderColor: "var(--color-border-light)" }}
-    >
-      <span className="text-xs uppercase tracking-wide text-muted">{label}</span>
-      <span className="text-right text-primary-text">{value}</span>
-    </div>
+    <span className="text-xs text-muted">
+      {label}:
+      <span className="ml-1 text-sm text-primary-text">{value}</span>
+    </span>
   );
 }

@@ -18,6 +18,7 @@ import {
 } from "@/lib/utils";
 import {
   ClassifiedIntent,
+  ChartData,
   ChatResponse,
   ChatContext,
   IntentType,
@@ -115,7 +116,7 @@ async function parseCareLogFromMessage(
   message: string
 ): Promise<ParsedCareLogWithError | null> {
   const response = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4.1",
     messages: [
       { role: "system", content: injectDateTime(CARE_LOG_PARSING_PROMPT) },
       { role: "user", content: message },
@@ -334,7 +335,7 @@ export async function POST(request: NextRequest) {
     const context = await getChatContext();
 
     const intentResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1",
       messages: [
         {
           role: "system",
@@ -464,7 +465,12 @@ async function handleIntent(
     case "confirm_pending":
       return await handleConfirmPending(context, userId);
     case "statistics":
-      return await handleStatistics(intent.params, userId);
+      return await handleStatistics(
+        intent.params,
+        userId,
+        originalMessage,
+        intent.confidence
+      );
     case "help":
       return {
         response: {
@@ -496,7 +502,7 @@ async function handleNewIntake(
   userId: string
 ): Promise<HandlerResult> {
   const response = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4.1",
     messages: [
       { role: "system", content: injectDateTime(INTAKE_PARSING_PROMPT) },
       { role: "user", content: originalMessage },
@@ -876,13 +882,19 @@ async function handleViewCareLogs(
     };
   }
 
+  const { count } = await supabaseAdmin
+    .from("daily_care_logs")
+    .select("*", { count: "exact", head: true })
+    .eq("intake_id", intake.id)
+    .eq("user_id", userId);
+
   const { data: logs } = await supabaseAdmin
     .from("daily_care_logs")
     .select("*")
     .eq("intake_id", intake.id)
     .eq("user_id", userId)
     .order("log_date", { ascending: false })
-    .limit(10);
+    .limit(50);
 
   if (!logs || logs.length === 0) {
     return {
@@ -894,10 +906,13 @@ async function handleViewCareLogs(
 
   return {
     response: {
-      message: `Here are the recent care logs for ${intake.intake_number}:`,
+      message: `Here are the care logs for ${intake.intake_number} (${count ?? logs.length} total):`,
       embedded: {
         type: "care_logs",
-        data: logs,
+        data: {
+          logs,
+          totalCount: count ?? logs.length,
+        },
       },
     },
     newContext: {
@@ -1021,7 +1036,7 @@ async function handleUpdateIntake(
 
   if (Object.keys(fieldsToUpdate).length === 0) {
     const parseResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1",
       messages: [
         {
           role: "system",
@@ -1199,6 +1214,7 @@ async function handleListAnimalsInCare(
           type: "animals_list",
           data: {
             items: [],
+            totalCount: 0,
             mode: "under_care",
             statusFilter: statusName,
           },
@@ -1217,7 +1233,9 @@ async function handleListAnimalsInCare(
       )
     : underCare;
 
-  if (filtered.length === 0) {
+  const totalCount = filtered.length;
+
+  if (totalCount === 0) {
     const statusName = statusFilter
       ? getDispositionInfo(statusFilter).shortTitle
       : undefined;
@@ -1231,6 +1249,7 @@ async function handleListAnimalsInCare(
           type: "animals_list",
           data: {
             items: [],
+            totalCount: 0,
             mode: "under_care",
             statusFilter: statusName,
           },
@@ -1245,16 +1264,17 @@ async function handleListAnimalsInCare(
   return {
     response: {
       message: statusFilter
-        ? `You have ${filtered.length} under-care animal${
-            filtered.length === 1 ? "" : "s"
+        ? `You have ${totalCount} under-care animal${
+            totalCount === 1 ? "" : "s"
           } with ${getDispositionInfo(statusFilter).shortTitle} status:`
-        : `You have ${filtered.length} animal${
-            filtered.length === 1 ? "" : "s"
+        : `You have ${totalCount} animal${
+            totalCount === 1 ? "" : "s"
           } currently under care:`,
       embedded: {
         type: "animals_list",
         data: {
-          items: filtered,
+          items: filtered.slice(0, 50),
+          totalCount,
           mode: "under_care",
           statusFilter: statusFilter
             ? getDispositionInfo(statusFilter).shortTitle
@@ -1298,11 +1318,12 @@ async function handleListAllIntakes(
       )
     : intakes;
 
+  const totalCount = filtered.length;
   const statusName = statusFilter
     ? getDispositionInfo(statusFilter).shortTitle
     : undefined;
 
-  if (filtered.length === 0) {
+  if (totalCount === 0) {
     return {
       response: {
         message: statusName
@@ -1312,6 +1333,7 @@ async function handleListAllIntakes(
           type: "animals_list",
           data: {
             items: [],
+            totalCount: 0,
             mode: "all_intakes",
             statusFilter: statusName,
           },
@@ -1326,16 +1348,17 @@ async function handleListAllIntakes(
   return {
     response: {
       message: statusName
-        ? `Here are ${filtered.length} intake${
-            filtered.length === 1 ? "" : "s"
+        ? `Here are ${totalCount} intake${
+            totalCount === 1 ? "" : "s"
           } with ${statusName} status:`
-        : `Here are all ${filtered.length} intake${
-            filtered.length === 1 ? "" : "s"
+        : `Here are all ${totalCount} intake${
+            totalCount === 1 ? "" : "s"
           }:`,
       embedded: {
         type: "animals_list",
         data: {
-          items: filtered,
+          items: filtered.slice(0, 50),
+          totalCount,
           mode: "all_intakes",
           statusFilter: statusName,
         },
@@ -1749,7 +1772,8 @@ async function handleQuickStatus(userId: string): Promise<HandlerResult> {
     `
     )
     .eq("user_id", userId)
-    .order("intake_date", { ascending: false });
+    .order("intake_date", { ascending: false })
+    .limit(30);
 
   if (!intakes || intakes.length === 0) {
     return {
@@ -1821,7 +1845,10 @@ async function handleQuickStatus(userId: string): Promise<HandlerResult> {
 
   return {
     response: {
-      message: "",
+      message:
+        underCare.length === 30
+          ? "Showing top 30 of your animals under care."
+          : "",
       embedded: {
         type: "quick_status",
         data: {
@@ -1838,18 +1865,169 @@ async function handleQuickStatus(userId: string): Promise<HandlerResult> {
 
 async function handleStatistics(
   params: Record<string, unknown>,
-  userId: string
+  userId: string,
+  originalMessage: string,
+  intentConfidence: number
 ): Promise<HandlerResult> {
-  const metric = (params.metric as string) || "count";
+  type StatisticsMetric = "count" | "trend" | "breakdown";
+  type StatisticsGroupBy =
+    | "species"
+    | "intake_reason"
+    | "month"
+    | "disposition"
+    | "distress_code";
+  type StatisticsChartType = "pie" | "bar" | "line";
+
+  const SUPPORTED_GROUP_BY: StatisticsGroupBy[] = [
+    "species",
+    "intake_reason",
+    "month",
+    "disposition",
+    "distress_code",
+  ];
+  const SUPPORTED_METRICS: StatisticsMetric[] = ["count", "trend", "breakdown"];
+  const SUPPORTED_CHART_TYPES: StatisticsChartType[] = ["pie", "bar", "line"];
+
+  const metricRaw =
+    typeof params.metric === "string" ? params.metric.toLowerCase() : undefined;
+  const metric = SUPPORTED_METRICS.includes(metricRaw as StatisticsMetric)
+    ? (metricRaw as StatisticsMetric)
+    : undefined;
+
+  const groupByRaw =
+    typeof params.group_by === "string" ? params.group_by.toLowerCase() : undefined;
+  const groupBy = SUPPORTED_GROUP_BY.includes(groupByRaw as StatisticsGroupBy)
+    ? (groupByRaw as StatisticsGroupBy)
+    : undefined;
+
+  const chartTypeRaw =
+    typeof params.chart_type === "string"
+      ? params.chart_type.toLowerCase()
+      : undefined;
+  const explicitChartType = SUPPORTED_CHART_TYPES.includes(
+    chartTypeRaw as StatisticsChartType
+  )
+    ? (chartTypeRaw as StatisticsChartType)
+    : undefined;
+
   const speciesFilter = params.species_filter as string | undefined;
+  const normalizedSpeciesFilter =
+    typeof speciesFilter === "string" && speciesFilter.trim()
+      ? speciesFilter.trim()
+      : undefined;
+
+  const timeRangeRaw =
+    typeof params.time_range === "string" ? params.time_range.toLowerCase() : undefined;
+  const timeStartRaw =
+    typeof params.time_start === "string" ? params.time_start : undefined;
+  const timeEndRaw = typeof params.time_end === "string" ? params.time_end : undefined;
+
+  const parseDate = (value?: string): Date | null => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const toMonthKey = (value: unknown): string | null => {
+    if (!value) return null;
+    const parsed = new Date(String(value));
+    if (Number.isNaN(parsed.getTime())) return null;
+    const year = parsed.getUTCFullYear();
+    const month = String(parsed.getUTCMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
+  const formatDateForMessage = (date: Date): string =>
+    date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+  const getDateBounds = (): {
+    start?: string;
+    end?: string;
+    timeLabel: string;
+  } => {
+    const now = new Date();
+    const explicitStart = parseDate(timeStartRaw);
+    const explicitEnd = parseDate(timeEndRaw);
+
+    if (explicitStart || explicitEnd) {
+      const timeLabel =
+        explicitStart && explicitEnd
+          ? `${formatDateForMessage(explicitStart)} to ${formatDateForMessage(explicitEnd)}`
+          : explicitStart
+            ? `since ${formatDateForMessage(explicitStart)}`
+            : `through ${formatDateForMessage(explicitEnd as Date)}`;
+      return {
+        start: explicitStart?.toISOString(),
+        end: explicitEnd?.toISOString(),
+        timeLabel,
+      };
+    }
+
+    if (timeRangeRaw && /^\d{4}$/.test(timeRangeRaw)) {
+      const year = Number(timeRangeRaw);
+      const start = new Date(Date.UTC(year, 0, 1));
+      const end = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
+      return { start: start.toISOString(), end: end.toISOString(), timeLabel: timeRangeRaw };
+    }
+
+    if (timeRangeRaw === "this_month") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return {
+        start: start.toISOString(),
+        end: now.toISOString(),
+        timeLabel: "this month",
+      };
+    }
+    if (timeRangeRaw === "this_year") {
+      const start = new Date(now.getFullYear(), 0, 1);
+      return {
+        start: start.toISOString(),
+        end: now.toISOString(),
+        timeLabel: "this year",
+      };
+    }
+    if (timeRangeRaw === "last30_days") {
+      const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return {
+        start: start.toISOString(),
+        end: now.toISOString(),
+        timeLabel: "the last 30 days",
+      };
+    }
+    if (timeRangeRaw === "last90_days") {
+      const start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      return {
+        start: start.toISOString(),
+        end: now.toISOString(),
+        timeLabel: "the last 90 days",
+      };
+    }
+    if (timeRangeRaw === "all_time") {
+      return { timeLabel: "all time" };
+    }
+
+    return { timeLabel: "all time" };
+  };
+
+  const { start, end, timeLabel } = getDateBounds();
 
   let query = supabaseAdmin
     .from("intakes")
     .select("*, dispositions(disposition_code)")
     .eq("user_id", userId);
 
-  if (speciesFilter) {
-    query = query.ilike("species", `%${speciesFilter}%`);
+  if (normalizedSpeciesFilter) {
+    query = query.ilike("species", `%${normalizedSpeciesFilter}%`);
+  }
+  if (start) {
+    query = query.gte("intake_date", start);
+  }
+  if (end) {
+    query = query.lte("intake_date", end);
   }
 
   const { data: intakes } = await query;
@@ -1857,9 +2035,170 @@ async function handleStatistics(
   if (!intakes || intakes.length === 0) {
     return {
       response: {
-        message: speciesFilter
-          ? `No intakes found matching "${speciesFilter}".`
+        message: normalizedSpeciesFilter
+          ? `No intakes found matching "${normalizedSpeciesFilter}" for ${timeLabel}.`
           : "No intakes found.",
+      },
+    };
+  }
+
+  const unsupportedGroupBy = Boolean(groupByRaw && !groupBy);
+  const unsupportedMetric = Boolean(metricRaw && !metric);
+  const unsupportedChartType = Boolean(chartTypeRaw && !explicitChartType);
+  const shouldUseFallback =
+    unsupportedGroupBy ||
+    unsupportedMetric ||
+    unsupportedChartType ||
+    intentConfidence < 0.4;
+
+  const fallbackRows = intakes.slice(0, 100).map((intake: any) => ({
+    intake_date: intake.intake_date,
+    species: intake.species ?? null,
+    quantity: intake.quantity ?? 1,
+    intake_reason: intake.intake_reason ?? null,
+    distress_code: intake.distress_code ?? null,
+    disposition: getDispositionInfo(getIntakeDispositionCode(intake)).shortTitle,
+  }));
+
+  const isValidChartData = (value: unknown): value is ChartData => {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as ChartData;
+    if (!candidate.title || typeof candidate.title !== "string") return false;
+    if (!["bar", "line", "pie"].includes(candidate.type)) return false;
+    if (!Array.isArray(candidate.data)) return false;
+    return true;
+  };
+
+  if (shouldUseFallback) {
+    const fallbackPrompt = [
+      "You are a data analyst for a wildlife intake application.",
+      "Return ONLY JSON with a valid ChartData object:",
+      '{ "title": string, "type": "bar"|"line"|"pie", "data": Array<Record<string, string|number>>, "xKey"?: string, "yKey"?: string, "nameKey"?: string, "valueKey"?: string }',
+      "Use concise labels and numeric values.",
+      "If using pie chart, provide name/value style rows and set nameKey/valueKey.",
+      "If using line/bar chart, provide x/y style rows and set xKey/yKey.",
+      "Never return markdown.",
+    ].join("\n");
+
+    const fallbackResponse = await openai.chat.completions.create({
+      model: "gpt-4.1",
+      messages: [
+        { role: "system", content: fallbackPrompt },
+        {
+          role: "user",
+          content: JSON.stringify(
+            {
+              question: originalMessage,
+              totalRows: intakes.length,
+              truncated: intakes.length > 100,
+              rows: fallbackRows,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 1200,
+    });
+
+    const fallbackContent = fallbackResponse.choices[0]?.message?.content || "{}";
+    try {
+      const parsed = JSON.parse(fallbackContent);
+      if (isValidChartData(parsed)) {
+        return {
+          response: {
+            message: "Here's a chart based on your request:",
+            embedded: {
+              type: "chart",
+              data: parsed,
+            },
+          },
+          newContext: {
+            lastIntent: "statistics",
+          },
+        };
+      }
+    } catch {
+      // Fall through to deterministic statistics response.
+    }
+  }
+
+  let resolvedGroupBy = groupBy;
+  if (!resolvedGroupBy && metric === "trend") {
+    resolvedGroupBy = "month";
+  }
+
+  const groupByLabelMap: Record<StatisticsGroupBy, string> = {
+    species: "species",
+    intake_reason: "intake reason",
+    month: "month",
+    disposition: "disposition",
+    distress_code: "distress code",
+  };
+
+  const makeCountMap = (key: StatisticsGroupBy): Map<string, number> => {
+    const counts = new Map<string, number>();
+    for (const intake of intakes) {
+      let groupKey = "Unknown";
+      if (key === "species") {
+        groupKey = intake.species?.trim() || "Unknown";
+      } else if (key === "intake_reason") {
+        groupKey = intake.intake_reason?.trim() || "Unknown";
+      } else if (key === "month") {
+        groupKey = toMonthKey(intake.intake_date) || "Unknown";
+      } else if (key === "disposition") {
+        groupKey = getDispositionInfo(getIntakeDispositionCode(intake)).shortTitle;
+      } else if (key === "distress_code") {
+        groupKey = intake.distress_code?.trim() || "Unknown";
+      }
+      counts.set(groupKey, (counts.get(groupKey) || 0) + 1);
+    }
+    return counts;
+  };
+
+  if (resolvedGroupBy) {
+    const counts = makeCountMap(resolvedGroupBy);
+    const entries = Array.from(counts.entries()).filter((entry) => entry[1] > 0);
+    if (resolvedGroupBy === "month") {
+      entries.sort((a, b) => a[0].localeCompare(b[0]));
+    } else {
+      entries.sort((a, b) => b[1] - a[1]);
+    }
+
+    const autoChartType: StatisticsChartType =
+      resolvedGroupBy === "month" ? "line" : entries.length < 8 ? "pie" : "bar";
+    const finalChartType = explicitChartType || autoChartType;
+
+    let chartData: ChartData;
+    if (finalChartType === "pie") {
+      chartData = {
+        title: `Intakes by ${groupByLabelMap[resolvedGroupBy]}`,
+        type: "pie",
+        data: entries.map(([name, value]) => ({ name, value })),
+        nameKey: "name",
+        valueKey: "value",
+      };
+    } else {
+      chartData = {
+        title: `Intakes by ${groupByLabelMap[resolvedGroupBy]}`,
+        type: finalChartType,
+        data: entries.map(([name, value]) => ({ name, value })),
+        xKey: "name",
+        yKey: "value",
+      };
+    }
+
+    return {
+      response: {
+        message: `Here's a breakdown of intakes in ${timeLabel} by ${groupByLabelMap[resolvedGroupBy]}${normalizedSpeciesFilter ? ` for ${normalizedSpeciesFilter}` : ""}:`,
+        embedded: {
+          type: "chart",
+          data: chartData,
+        },
+      },
+      newContext: {
+        lastIntent: "statistics",
       },
     };
   }
@@ -1869,19 +2208,22 @@ async function handleStatistics(
     (sum: number, i: any) => sum + (i.quantity || 1),
     0
   );
-  const underCare = intakes.filter(
-    (i: any) => isCurrentlyInCare(getIntakeDispositionCode(i))
+  const underCare = intakes.filter((i: any) =>
+    isCurrentlyInCare(getIntakeDispositionCode(i))
   ).length;
   const released = intakes.filter(
-    (i: any) => normalizeDisposition(getIntakeDispositionCode(i)) === DISPOSITION_RELEASED
+    (i: any) =>
+      normalizeDisposition(getIntakeDispositionCode(i)) === DISPOSITION_RELEASED
   ).length;
-  const title = speciesFilter
-    ? `Statistics for ${speciesFilter}`
+  const title = normalizedSpeciesFilter
+    ? `Statistics for ${normalizedSpeciesFilter}`
     : "Overall Statistics";
 
   return {
     response: {
-      message: "Here are your statistics:",
+      message: normalizedSpeciesFilter
+        ? `Here are your intake statistics for ${normalizedSpeciesFilter} in ${timeLabel}:`
+        : `Here are your intake statistics for ${timeLabel}:`,
       embedded: {
         type: "statistics",
         data: {
@@ -1904,7 +2246,7 @@ async function handleStatistics(
 
 async function handleGeneralQuestion(message: string): Promise<HandlerResult> {
   const response = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4.1",
     messages: [
       { role: "system", content: injectDateTime(GENERAL_QUESTION_PROMPT) },
       { role: "user", content: message },

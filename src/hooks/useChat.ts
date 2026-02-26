@@ -67,12 +67,18 @@ export function useChat() {
 
           if (type === "care_log") {
             if (msg.embedded.type === "care_logs") {
-              const updatedLogs = msg.embedded.data.map((log) =>
+              const updatedLogs = msg.embedded.data.logs.map((log) =>
                 log.id === id ? { ...log, ...data } : log
               );
               return {
                 ...msg,
-                embedded: { ...msg.embedded, data: updatedLogs },
+                embedded: {
+                  ...msg.embedded,
+                  data: {
+                    ...msg.embedded.data,
+                    logs: updatedLogs,
+                  },
+                },
               };
             }
             if (msg.embedded.type === "care_log_updated") {

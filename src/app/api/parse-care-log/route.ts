@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1",
       messages: [
         { role: "system", content: injectDateTime(CARE_LOG_PARSING_PROMPT) },
         { role: "user", content: text },

@@ -26,8 +26,13 @@ const COLORS = [
   "#2D5A27",
   "#7C5C3B",
   "#22C55E",
-  "#6B7280",
+  "#4C7A5A",
+  "#C78B3A",
+  "#3B82F6",
   "#EF4444",
+  "#8B5CF6",
+  "#14B8A6",
+  "#F97316",
 ];
 
 export function ChartCard({ data }: ChartCardProps) {
@@ -48,17 +53,18 @@ function renderChart(data: ChartData) {
     case "bar":
       return (
         <BarChart data={data.data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E7EFE9" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#3A423A" />
           <XAxis
             dataKey={data.xKey || "name"}
-            tick={{ fill: "#6B7280", fontSize: 12 }}
+            tick={{ fill: "#A8B0A8", fontSize: 12 }}
           />
-          <YAxis tick={{ fill: "#6B7280", fontSize: 12 }} />
+          <YAxis tick={{ fill: "#A8B0A8", fontSize: 12 }} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "white",
-              border: "1px solid #E7EFE9",
+              backgroundColor: "#242824",
+              border: "1px solid #3A423A",
               borderRadius: "8px",
+              color: "#F0F2F0",
             }}
           />
           <Bar
@@ -71,17 +77,18 @@ function renderChart(data: ChartData) {
     case "line":
       return (
         <LineChart data={data.data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E7EFE9" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#3A423A" />
           <XAxis
             dataKey={data.xKey || "name"}
-            tick={{ fill: "#6B7280", fontSize: 12 }}
+            tick={{ fill: "#A8B0A8", fontSize: 12 }}
           />
-          <YAxis tick={{ fill: "#6B7280", fontSize: 12 }} />
+          <YAxis tick={{ fill: "#A8B0A8", fontSize: 12 }} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "white",
-              border: "1px solid #E7EFE9",
+              backgroundColor: "#242824",
+              border: "1px solid #3A423A",
               borderRadius: "8px",
+              color: "#F0F2F0",
             }}
           />
           <Line
@@ -103,10 +110,22 @@ function renderChart(data: ChartData) {
             cx="50%"
             cy="50%"
             outerRadius={80}
-            label={({ name, percent }) => {
+            label={({ name, percent, x, y }) => {
               const safePercent = percent ?? 0;
-              return `${name} (${(safePercent * 100).toFixed(0)}%)`;
+              return (
+                <text
+                  x={Number(x)}
+                  y={Number(y)}
+                  fill="#F0F2F0"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize={12}
+                >
+                  {`${name} (${(safePercent * 100).toFixed(0)}%)`}
+                </text>
+              );
             }}
+            labelLine={{ stroke: "#A8B0A8" }}
           >
             {data.data.map((_, index) => (
               <Cell
@@ -117,12 +136,13 @@ function renderChart(data: ChartData) {
           </Pie>
           <Tooltip
             contentStyle={{
-              backgroundColor: "white",
-              border: "1px solid #E7EFE9",
+              backgroundColor: "#242824",
+              border: "1px solid #3A423A",
               borderRadius: "8px",
+              color: "#F0F2F0",
             }}
           />
-          <Legend />
+          <Legend wrapperStyle={{ color: "#A8B0A8" }} />
         </PieChart>
       );
     default:

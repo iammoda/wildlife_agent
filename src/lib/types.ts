@@ -50,7 +50,10 @@ export type EmbeddedContent =
     }
   | {
       type: "care_logs";
-      data: DailyCareLog[];
+      data: {
+        logs: DailyCareLog[];
+        totalCount: number;
+      };
     }
   | {
       type: "care_log_updated";
@@ -68,6 +71,7 @@ export type EmbeddedContent =
       type: "animals_list";
       data: {
         items: IntakeWithRelations[];
+        totalCount: number;
         mode: "under_care" | "all_intakes";
         statusFilter?: string;
       };
