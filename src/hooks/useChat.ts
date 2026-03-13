@@ -13,8 +13,11 @@ import {
   VOICE_SAVE_COMMANDS,
   VOICE_CANCEL_COMMANDS,
 } from "@/lib/constants";
+import { isSupportedDocument } from "@/lib/document-upload";
 
 const MAX_MESSAGES = 100;
+const UNSUPPORTED_DOCUMENT_MESSAGE =
+  "Only images and PDFs are supported right now.";
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -532,11 +535,19 @@ export function useChat() {
 
   const sendDocumentCapture = useCallback(
     async (file: File) => {
+      if (!isSupportedDocument(file)) {
+        addMessage("assistant", "", {
+          type: "error",
+          message: UNSUPPORTED_DOCUMENT_MESSAGE,
+        });
+        return;
+      }
+
       setIsProcessing(true);
-      addMessage("user", "Uploaded document for scanning");
+      addMessage("user", "Uploaded document for processing");
       try {
         const formData = new FormData();
-        formData.append("image", file);
+        formData.append("file", file);
         const extractRes = await fetch("/api/extract-document", {
           method: "POST",
           body: formData,

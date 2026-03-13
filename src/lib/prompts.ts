@@ -265,4 +265,11 @@ Respond with JSON:
     "field_name": "new_value"
   }
 }
+Use the exact field keys shown above in the updates object.
+Convert human labels like "finder phone" to "finder_phone".
+For unqualified contact labels, default to finder fields:
+- "name" -> "finder_name"
+- "phone" or "phone number" -> "finder_phone"
+- "email" -> "finder_email"
+- "address" -> "finder_address"
 Only include fields that the user explicitly wants to change.`;

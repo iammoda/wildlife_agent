@@ -31,6 +31,42 @@ export const EXAM_UPDATABLE_FIELDS = [
   "treatment_notes",
 ] as const;
 
+const UPDATE_FIELD_KEY_ALIASES: Record<string, string> = {
+  name: "finder_name",
+  contact_name: "finder_name",
+  finder_contact_name: "finder_name",
+  phone: "finder_phone",
+  phone_number: "finder_phone",
+  telephone: "finder_phone",
+  contact_phone: "finder_phone",
+  contact_phone_number: "finder_phone",
+  contact_number: "finder_phone",
+  finder_phone_number: "finder_phone",
+  finder_telephone: "finder_phone",
+  email: "finder_email",
+  email_address: "finder_email",
+  contact_email: "finder_email",
+  finder_email_address: "finder_email",
+  address: "finder_address",
+  mailing_address: "finder_address",
+  contact_address: "finder_address",
+  exam_note: "exam_notes",
+  treatment_note: "treatment_notes",
+};
+
+function canonicalizeUpdateFieldKey(key: string): string {
+  return key
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function normalizeUpdateFieldKey(key: string): string {
+  const canonicalKey = canonicalizeUpdateFieldKey(key);
+  return UPDATE_FIELD_KEY_ALIASES[canonicalKey] ?? canonicalKey;
+}
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -45,24 +81,26 @@ export function splitIntakeAndExamUpdates(payload: Record<string, unknown>) {
   const invalidFields: string[] = [];
 
   for (const [key, value] of Object.entries(payload)) {
-    if (!allowedFields.has(key)) {
+    const normalizedKey = normalizeUpdateFieldKey(key);
+
+    if (!allowedFields.has(normalizedKey)) {
       invalidFields.push(key);
       continue;
     }
 
-    if ((INTAKE_UPDATABLE_FIELDS as readonly string[]).includes(key)) {
-      if (key === "disposition") {
-        intakeUpdates[key] = normalizeDisposition(value);
+    if ((INTAKE_UPDATABLE_FIELDS as readonly string[]).includes(normalizedKey)) {
+      if (normalizedKey === "disposition") {
+        intakeUpdates[normalizedKey] = normalizeDisposition(value);
       } else {
-        intakeUpdates[key] = value;
+        intakeUpdates[normalizedKey] = value;
       }
       continue;
     }
 
-    if (key === "exam_notes") {
+    if (normalizedKey === "exam_notes") {
       examUpdates.treatment_notes = value;
     } else {
-      examUpdates[key] = value;
+      examUpdates[normalizedKey] = value;
     }
   }
 

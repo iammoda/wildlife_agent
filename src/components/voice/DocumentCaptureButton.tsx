@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { DOCUMENT_UPLOAD_ACCEPT } from "@/lib/document-upload";
 
 interface DocumentCaptureButtonProps {
   onCapture: (file: File) => void;
@@ -30,8 +31,7 @@ export function DocumentCaptureButton({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
-        capture="environment"
+        accept={DOCUMENT_UPLOAD_ACCEPT}
         onChange={handleFileChange}
         className="hidden"
       />
@@ -48,7 +48,7 @@ export function DocumentCaptureButton({
           e.currentTarget.style.color = "var(--color-text-secondary)";
           e.currentTarget.style.backgroundColor = "transparent";
         }}
-        aria-label="Capture document"
+        aria-label="Add document"
       >
         <svg
           className="w-5 h-5"
