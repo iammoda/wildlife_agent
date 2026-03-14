@@ -6,10 +6,9 @@ import { Input } from "@/components/ui/Input";
 
 interface LoginFormProps {
   onSuccess: () => void;
-  onSwitchToRegister: () => void;
 }
 
-export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
+export function LoginForm({ onSuccess }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -68,15 +67,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
         className="text-center text-sm"
         style={{ color: "var(--color-text-secondary)" }}
       >
-        New here?{" "}
-        <button
-          type="button"
-          onClick={onSwitchToRegister}
-          className="hover:underline"
-          style={{ color: "var(--color-brand-primary)" }}
-        >
-          Create an account
-        </button>
+        Need an invite? Contact an administrator to receive an activation email.
       </p>
     </form>
   );

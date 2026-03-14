@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { setAuthCookies } from "@/lib/auth";
+import { buildAuthSession, isAccountSetupCompleted, setAuthCookies } from "@/lib/auth";
 import { supabaseAuth } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
@@ -26,12 +26,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (!isAccountSetupCompleted(data.user)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Finish activating your account from the invitation email before signing in.",
+      },
+      { status: 403 }
+    );
+  }
+
+  const session = buildAuthSession(data.user);
+
   const response = NextResponse.json({
     success: true,
     data: {
-      id: data.user.id,
-      name: (data.user.user_metadata?.name as string | undefined) || email,
-      email: data.user.email,
+      id: session.userId,
+      name: session.userName,
+      email: session.userEmail,
+      profileName: session.userProfileName,
+      accountSetupCompleted: session.accountSetupCompleted,
     },
   });
 

@@ -46,8 +46,9 @@ function toEditableIntake(data: any): ParsedIntake {
 export default function HomePage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const accountSetupCompleted = user?.accountSetupCompleted ?? false;
   const { stats, isLoading: summaryLoading, refresh: refreshSummary } =
-    useSummary();
+    useSummary(isAuthenticated && accountSetupCompleted);
   const {
     messages,
     isProcessing,
@@ -76,10 +77,19 @@ export default function HomePage() {
   const [careLogMode, setCareLogMode] = useState<"create" | "edit">("create");
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/login");
+    if (authLoading) {
+      return;
     }
-  }, [authLoading, isAuthenticated, router]);
+
+    if (!isAuthenticated) {
+      router.replace("/login");
+      return;
+    }
+
+    if (user && !user.accountSetupCompleted) {
+      router.replace("/activate-account");
+    }
+  }, [authLoading, isAuthenticated, router, user]);
 
   if (authLoading) {
     return (
@@ -100,7 +110,7 @@ export default function HomePage() {
     );
   }
 
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated || !user || !accountSetupCompleted) {
     return null;
   }
 

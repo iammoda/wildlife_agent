@@ -11,7 +11,7 @@ type StatusMessage = { type: "success" | "error"; message: string } | null;
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, logout, refreshAuth } = useAuth();
+  const { user, isLoading, isAuthenticated, logout, refreshAuth } = useAuth();
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<StatusMessage>(null);
@@ -19,6 +19,21 @@ export default function SettingsPage() {
   useEffect(() => {
     setName(user?.name || "");
   }, [user?.name]);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      router.replace("/login");
+      return;
+    }
+
+    if (user && !user.accountSetupCompleted) {
+      router.replace("/activate-account");
+    }
+  }, [isAuthenticated, isLoading, router, user]);
 
   const normalizedName = useMemo(() => name.trim(), [name]);
   const isNameChanged = normalizedName !== (user?.name || "");
@@ -67,6 +82,10 @@ export default function SettingsPage() {
       setIsSaving(false);
     }
   };
+
+  if (isLoading || !user || !user.accountSetupCompleted) {
+    return null;
+  }
 
   return (
     <div

@@ -2,6 +2,8 @@ export interface User {
   id: string;
   name: string;
   email?: string | null;
+  profileName?: string | null;
+  accountSetupCompleted: boolean;
 }
 
 export interface SummaryStats {

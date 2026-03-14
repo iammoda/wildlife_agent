@@ -5,16 +5,17 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 interface RegisterFormProps {
-  onSuccess: (result?: { needsConfirmation?: boolean }) => void;
-  onSwitchToLogin: () => void;
+  email: string;
+  initialName?: string | null;
+  onSuccess: () => void;
 }
 
 export function RegisterForm({
+  email,
+  initialName = "",
   onSuccess,
-  onSwitchToLogin,
 }: RegisterFormProps) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(initialName ?? "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,17 +34,17 @@ export function RegisterForm({
     }
     setIsLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch("/api/auth/activate-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, password, confirmPassword }),
       });
       const data = await res.json();
       if (!data.success) {
-        setError(data.error || "Registration failed");
+        setError(data.error || "Account setup failed");
         return;
       }
-      onSuccess({ needsConfirmation: !!data.data?.needsConfirmation });
+      onSuccess();
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -65,9 +66,8 @@ export function RegisterForm({
         label="Email"
         type="email"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@example.com"
-        required
+        disabled
+        readOnly
       />
       <Input
         label="Create Password"
@@ -97,15 +97,7 @@ export function RegisterForm({
         className="text-center text-sm"
         style={{ color: "var(--color-text-secondary)" }}
       >
-        Already have an account?{" "}
-        <button
-          type="button"
-          onClick={onSwitchToLogin}
-          className="hover:underline"
-          style={{ color: "var(--color-brand-primary)" }}
-        >
-          Sign in
-        </button>
+        This activation link is tied to the invited email above.
       </p>
     </form>
   );

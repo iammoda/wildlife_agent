@@ -1,26 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { RegisterForm } from "@/components/auth/RegisterForm";
 import { SquirrelLogo } from "@/components/ui/SquirrelLogo";
-import { LoginForm } from "@/components/auth/LoginForm";
 import { useAuth } from "@/hooks/useAuth";
 
-export default function LoginPage() {
+export default function ActivateAccountPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setErrorMessage(params.get("error"));
-  }, []);
+    if (isLoading) {
+      return;
+    }
 
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.replace(user?.accountSetupCompleted ? "/" : "/activate-account");
+    if (!isAuthenticated) {
+      router.replace("/login");
+      return;
+    }
+
+    if (user?.accountSetupCompleted) {
+      router.replace("/");
     }
   }, [isAuthenticated, isLoading, router, user?.accountSetupCompleted]);
+
+  if (isLoading) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "var(--color-bg-primary)" }}
+      >
+        <span style={{ color: "var(--color-text-secondary)" }}>Loading...</span>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  if (user.accountSetupCompleted) {
+    return null;
+  }
 
   return (
     <div
@@ -39,13 +61,13 @@ export default function LoginPage() {
             className="text-2xl font-semibold font-title"
             style={{ color: "var(--color-text-primary)" }}
           >
-            Wildlife Intake
+            Create Your Account
           </h1>
           <p
             className="mt-1"
             style={{ color: "var(--color-text-secondary)" }}
           >
-            Sign in to continue
+            Finish setting up your invited account to access Wildlife Intake.
           </p>
         </div>
         <div
@@ -56,19 +78,9 @@ export default function LoginPage() {
             border: "1px solid var(--color-border)",
           }}
         >
-          {errorMessage ? (
-            <div
-              className="mb-4 rounded-xl px-4 py-3 text-sm"
-              style={{
-                backgroundColor: "rgba(197, 69, 69, 0.12)",
-                color: "var(--color-error)",
-                border: "1px solid rgba(197, 69, 69, 0.28)",
-              }}
-            >
-              {errorMessage}
-            </div>
-          ) : null}
-          <LoginForm
+          <RegisterForm
+            email={user.email || ""}
+            initialName={user.profileName}
             onSuccess={() => {
               router.replace("/");
               router.refresh();

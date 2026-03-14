@@ -3,12 +3,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { SummaryStats } from "@/lib/types";
 
-export function useSummary() {
+export function useSummary(enabled = true) {
   const [stats, setStats] = useState<SummaryStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSummary = useCallback(async () => {
+    if (!enabled) {
+      setStats(null);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
@@ -24,7 +31,7 @@ export function useSummary() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     fetchSummary();
