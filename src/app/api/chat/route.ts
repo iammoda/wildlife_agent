@@ -34,6 +34,7 @@ import {
   isCurrentlyInCare,
   normalizeDisposition,
 } from "@/lib/constants";
+import { resolveSpecificSquirrelSpecies } from "@/lib/species";
 
 const CONTEXT_COOKIE_NAME = "wildlife_chat_context";
 const CONTEXT_MAX_AGE_SECONDS = 30 * 60;
@@ -523,6 +524,13 @@ async function handleNewIntake(
           "I couldn't parse that intake. Please describe the animal, how it was found, and any details you have.",
       },
     };
+  }
+
+  const explicitSquirrelSpecies = resolveSpecificSquirrelSpecies(
+    originalMessage
+  );
+  if (explicitSquirrelSpecies) {
+    parsed.species = explicitSquirrelSpecies;
   }
 
   if (!parsed.species) {

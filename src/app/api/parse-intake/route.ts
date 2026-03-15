@@ -5,7 +5,11 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { INTAKE_PARSING_PROMPT } from "@/lib/prompts";
 import { incrementIntakeNumber } from "@/lib/utils";
 import { ParsedIntake } from "@/lib/types";
-import { REQUIRED_INTAKE_FIELDS } from "@/lib/constants";
+import {
+  REQUIRED_INTAKE_FIELDS,
+  isRequiredIntakeFieldMissing,
+} from "@/lib/constants";
+import { resolveSpecificSquirrelSpecies } from "@/lib/species";
 
 function injectDateTime(prompt: string): string {
   const dateTimeStr = new Date().toLocaleString("en-US", {
@@ -67,6 +71,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const explicitSquirrelSpecies = resolveSpecificSquirrelSpecies(text);
+    if (explicitSquirrelSpecies) {
+      parsed.species = explicitSquirrelSpecies;
+    }
+
     if (!parsed.intake_number) {
       if (settings?.last_intake_number) {
         parsed.intake_number = incrementIntakeNumber(
@@ -83,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     const missingFields = REQUIRED_INTAKE_FIELDS.filter((field) => {
       const value = parsed[field.key as keyof typeof parsed];
-      return value === null || value === undefined || value === "";
+      return isRequiredIntakeFieldMissing(field.key, value);
     }).map((field) => field.label);
 
     return jsonResponse({

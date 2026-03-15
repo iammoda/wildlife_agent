@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
 import { requireAuth, setAuthCookies } from "@/lib/auth";
 import { INTAKE_MERGE_PROMPT } from "@/lib/prompts";
-import { REQUIRED_INTAKE_FIELDS } from "@/lib/constants";
+import {
+  REQUIRED_INTAKE_FIELDS,
+  isRequiredIntakeFieldMissing,
+} from "@/lib/constants";
 import { ParsedIntake } from "@/lib/types";
+import {
+  isGenericSquirrelSpecies,
+  resolveSpecificSquirrelSpecies,
+} from "@/lib/species";
 
 function injectDateTime(prompt: string): string {
   const dateTimeStr = new Date().toLocaleString("en-US", {
@@ -66,9 +73,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (
+      isGenericSquirrelSpecies(existingIntake?.species) &&
+      !merged.species
+    ) {
+      merged.species = existingIntake.species;
+    }
+
+    const explicitSquirrelSpecies = resolveSpecificSquirrelSpecies(
+      additionalText
+    );
+    if (explicitSquirrelSpecies) {
+      merged.species = explicitSquirrelSpecies;
+    }
+
     const missingFields = REQUIRED_INTAKE_FIELDS.filter((field) => {
       const value = merged[field.key as keyof typeof merged];
-      return value === null || value === undefined || value === "";
+      return isRequiredIntakeFieldMissing(field.key, value);
     }).map((field) => field.label);
 
     return jsonResponse({

@@ -1,3 +1,5 @@
+import { requiresSpeciesClarification } from "@/lib/species";
+
 export const SEX_OPTIONS = ["Unknown", "Male", "Female"] as const;
 
 export const INTAKE_REASON_OPTIONS = [
@@ -144,6 +146,21 @@ export const REQUIRED_INTAKE_FIELDS = [
   { key: "finder_name", label: "Finder Name" },
   { key: "finder_phone", label: "Finder Phone" },
 ] as const;
+
+export function isRequiredIntakeFieldMissing(
+  fieldKey: string,
+  value: unknown
+): boolean {
+  if (fieldKey === "species") {
+    if (typeof value !== "string" || !value.trim()) {
+      return true;
+    }
+
+    return requiresSpeciesClarification(value);
+  }
+
+  return value === null || value === undefined || value === "";
+}
 
 /**
  * Voice commands that trigger saving the pending intake.

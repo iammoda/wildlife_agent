@@ -12,8 +12,10 @@ import {
   REQUIRED_INTAKE_FIELDS,
   VOICE_SAVE_COMMANDS,
   VOICE_CANCEL_COMMANDS,
+  isRequiredIntakeFieldMissing,
 } from "@/lib/constants";
 import { isSupportedDocument } from "@/lib/document-upload";
+import { getSpeciesClarificationMessage } from "@/lib/species";
 
 const MAX_MESSAGES = 100;
 const UNSUPPORTED_DOCUMENT_MESSAGE =
@@ -145,7 +147,7 @@ export function useChat() {
   ): ParseIntakeResponse => {
     const missingFields = REQUIRED_INTAKE_FIELDS.filter((field) => {
       const value = parsed[field.key as keyof typeof parsed];
-      return value === null || value === undefined || value === "";
+      return isRequiredIntakeFieldMissing(field.key, value);
     }).map((field) => field.label);
 
     return {
@@ -160,10 +162,32 @@ export function useChat() {
     pendingMessageIdRef.current = null;
   }, []);
 
+  const upsertPendingMessage = useCallback(
+    (content: string, embedded?: EmbeddedContent) => {
+      if (pendingMessageIdRef.current) {
+        updateMessage(pendingMessageIdRef.current, { content, embedded });
+        return;
+      }
+
+      const msg = addMessage("assistant", content, embedded);
+      pendingMessageIdRef.current = msg.id;
+    },
+    [addMessage, updateMessage]
+  );
+
   const saveIntake = useCallback(
     async (data: ParsedIntake) => {
       setIsProcessing(true);
       try {
+        const clarificationMessage = getSpeciesClarificationMessage(
+          data.species
+        );
+        if (clarificationMessage) {
+          setPendingIntake(data);
+          upsertPendingMessage(clarificationMessage);
+          return;
+        }
+
         const res = await fetch("/api/intakes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -195,7 +219,7 @@ export function useChat() {
         setIsProcessing(false);
       }
     },
-    [addMessage, clearPendingIntake]
+    [addMessage, clearPendingIntake, upsertPendingMessage]
   );
 
   const editExistingIntake = useCallback(
@@ -335,6 +359,14 @@ export function useChat() {
       const { parsed, missingFields, isComplete } = response;
 
       setPendingIntake(parsed);
+      const clarificationMessage = getSpeciesClarificationMessage(
+        parsed.species
+      );
+      if (clarificationMessage) {
+        upsertPendingMessage(clarificationMessage);
+        return;
+      }
+
       let messageContent: string;
       if (isComplete) {
         messageContent = isUpdate
@@ -347,20 +379,12 @@ export function useChat() {
           : `I captured the intake info. Missing: **${missingList}**. You can provide more details, edit, or save as-is.`;
       }
 
-      if (isUpdate && pendingMessageIdRef.current) {
-        updateMessage(pendingMessageIdRef.current, {
-          content: messageContent,
-          embedded: { type: "intake_confirmation", data: parsed },
-        });
-      } else {
-        const msg = addMessage("assistant", messageContent, {
-          type: "intake_confirmation",
-          data: parsed,
-        });
-        pendingMessageIdRef.current = msg.id;
-      }
+      upsertPendingMessage(messageContent, {
+        type: "intake_confirmation",
+        data: parsed,
+      });
     },
-    [addMessage, updateMessage]
+    [upsertPendingMessage]
   );
 
   const sendTextMessage = useCallback(

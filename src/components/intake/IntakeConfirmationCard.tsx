@@ -5,7 +5,11 @@ import { ParsedIntake } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { getDispositionInfo, REQUIRED_INTAKE_FIELDS } from "@/lib/constants";
+import {
+  getDispositionInfo,
+  REQUIRED_INTAKE_FIELDS,
+  isRequiredIntakeFieldMissing,
+} from "@/lib/constants";
 
 interface IntakeConfirmationCardProps {
   data: ParsedIntake;
@@ -24,7 +28,7 @@ export function IntakeConfirmationCard({
 
   const missingFields = REQUIRED_INTAKE_FIELDS.filter((field) => {
     const value = data[field.key as keyof ParsedIntake];
-    return value === null || value === undefined || value === "";
+    return isRequiredIntakeFieldMissing(field.key, value);
   }).map((field) => field.label);
 
   const hasAllRequired = missingFields.length === 0;

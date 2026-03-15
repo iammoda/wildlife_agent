@@ -193,8 +193,9 @@ TASK: Extract any NEW field values from the user's message and merge them with t
 MERGE RULES:
 1. Only update fields that are currently null or empty in the existing intake
 2. Do NOT overwrite existing non-null values unless user explicitly says "change X to Y" or "actually it's X"
-3. If user provides info for a field that already has data, keep the existing value
-4. Extract new information using the same field definitions as initial parsing
+3. If the existing species is the generic value "squirrel" and the new message specifies a squirrel subtype, replace "squirrel" with the more specific subtype
+4. If user provides info for a field that already has data, keep the existing value
+5. Extract new information using the same field definitions as initial parsing
 FIELDS TO CONSIDER:
 - species, quantity, sex, age, weight
 - intake_reason, found_location, found_date
