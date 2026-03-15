@@ -9,28 +9,45 @@ interface StatisticsCardProps {
 
 export function StatisticsCard({ data }: StatisticsCardProps) {
   return (
-    <Card variant="bordered" className="space-y-3">
-      <h3 className="font-semibold text-primary-text">{data.title}</h3>
-      {data.summary && (
-        <p className="text-sm text-secondary-text">{data.summary}</p>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        {data.items.map((item, index) => (
-          <div
-            key={index}
-            className="bg-soft-mist/50 rounded-lg p-3 text-center"
-          >
-            <div className="text-2xl font-semibold text-wildlife-green">
-              {item.value}
-            </div>
-            <div className="text-sm text-secondary-text">{item.label}</div>
-            {item.subvalue && (
-              <div className="text-xs text-secondary-text mt-1">
-                {item.subvalue}
+    <Card variant="bordered" className="animate-fadeIn overflow-hidden">
+      <div className="p-4 space-y-3">
+        <h3
+          className="font-title text-base font-semibold"
+          style={{ color: "var(--color-text-primary)" }}
+        >
+          {data.title}
+        </h3>
+        {data.summary && (
+          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+            {data.summary}
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-4">
+          {data.items.map((item, index) => (
+            <div key={index} className="space-y-0.5">
+              <div
+                className="text-xl font-semibold"
+                style={{ color: "var(--color-brand-accent)" }}
+              >
+                {item.value}
               </div>
-            )}
-          </div>
-        ))}
+              <div
+                className="text-xs"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                {item.label}
+              </div>
+              {item.subvalue && (
+                <div
+                  className="text-xs"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  {item.subvalue}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </Card>
   );

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { IntakeWithRelations } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
-import { formatDate } from "@/lib/utils";
 import { getDispositionInfo } from "@/lib/constants";
 
 interface AnimalsInCareListProps {
@@ -26,10 +25,10 @@ export function AnimalsInCareList({
   const emptyMessage =
     mode === "all_intakes"
       ? statusFilter
-        ? `No intakes found with status ${statusFilter}.`
+        ? `No intakes found with status "${statusFilter}".`
         : "No intakes found."
       : statusFilter
-        ? `No under-care animals found with status ${statusFilter}.`
+        ? `No animals found with status "${statusFilter}".`
         : "No animals currently under care.";
 
   useEffect(() => {
@@ -39,7 +38,10 @@ export function AnimalsInCareList({
   if (animals.length === 0) {
     return (
       <Card variant="bordered">
-        <p className="text-sm text-secondary-text text-center py-4">
+        <p
+          className="text-sm text-center py-4"
+          style={{ color: "var(--color-text-muted)" }}
+        >
           {emptyMessage}
         </p>
       </Card>
@@ -47,113 +49,135 @@ export function AnimalsInCareList({
   }
 
   return (
-    <Card variant="bordered" className="space-y-3 animate-fadeIn">
-      <div className="flex items-center justify-between">
-        <h3 className="font-title text-lg font-semibold text-primary-text">
-          {title}
-        </h3>
-        <span
-          className="intake-pill"
-          style={{
-            backgroundColor: "var(--color-brand-light)",
-            color: "var(--color-brand-accent)",
-          }}
-        >
-          {totalCount}
-        </span>
-      </div>
-      <div className="space-y-1.5">
-        {animals.slice(0, visibleCount).map((animal) => {
-          const relationDisposition = animal.dispositions;
-          const relationCode = Array.isArray(relationDisposition)
-            ? relationDisposition[0]?.disposition_code
-            : relationDisposition?.disposition_code;
-          const disp = getDispositionInfo(animal.disposition ?? relationCode);
-          return (
-          <div
-            key={animal.id}
-            className={`intake-row-accent flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between${onViewAnimal ? " cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]" : ""}`}
-            onClick={() => onViewAnimal?.(animal.intake_number)}
+    <Card variant="bordered" className="animate-fadeIn overflow-hidden">
+      <div className="p-4 space-y-3">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3
+            className="font-title text-base font-semibold"
+            style={{ color: "var(--color-text-primary)" }}
           >
-            <div className="flex items-center gap-3">
-              <span
-                className="font-mono text-sm font-medium px-2.5 py-1 rounded-full"
+            {title}
+          </h3>
+          <span
+            className="text-xs"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            {totalCount}
+          </span>
+        </div>
+
+        {/* Rows */}
+        <div className="space-y-1">
+          {animals.slice(0, visibleCount).map((animal) => {
+            const relationDisposition = animal.dispositions;
+            const relationCode = Array.isArray(relationDisposition)
+              ? relationDisposition[0]?.disposition_code
+              : relationDisposition?.disposition_code;
+            const disp = getDispositionInfo(animal.disposition ?? relationCode);
+            const dateStr = formatShortDate(animal.intake_date);
+
+            return (
+              <div
+                key={animal.id}
+                className="flex items-center gap-3 py-2 px-2 rounded-lg transition-colors"
                 style={{
-                  backgroundColor: "var(--color-brand-light)",
-                  color: "var(--color-brand-accent)",
+                  cursor: onViewAnimal ? "pointer" : undefined,
+                }}
+                onClick={() => onViewAnimal?.(animal.intake_number)}
+                onMouseEnter={(e) => {
+                  if (onViewAnimal)
+                    e.currentTarget.style.backgroundColor =
+                      "var(--color-bg-tertiary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
                 }}
               >
-                {animal.intake_number}
-              </span>
-              <div className="text-sm">
-                <span className="font-medium text-primary-text">
-                  {animal.species}
+                {/* Intake number */}
+                <span
+                  className="font-mono text-xs flex-shrink-0"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  {animal.intake_number}
                 </span>
-                {animal.intake_reason && (
-                  <span className="text-sm text-secondary-text ml-2">
-                    {" \u2022 "}
-                    {animal.intake_reason}
+
+                {/* Species + reason */}
+                <span
+                  className="text-sm flex-1 min-w-0 truncate"
+                  style={{ color: "var(--color-text-primary)" }}
+                >
+                  {animal.species}
+                  {animal.intake_reason && (
+                    <span style={{ color: "var(--color-text-muted)" }}>
+                      {" \u00B7 "}
+                      {animal.intake_reason}
+                    </span>
+                  )}
+                </span>
+
+                {/* Date + status */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span
+                    className="text-xs hidden sm:inline"
+                    style={{ color: "var(--color-text-muted)" }}
+                  >
+                    {dateStr}
                   </span>
-                )}
+                  {mode === "all_intakes" && (
+                    <span
+                      className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                      style={{
+                        color: disp.isPositive
+                          ? "var(--color-success)"
+                          : "var(--color-error)",
+                        backgroundColor: disp.isPositive
+                          ? "color-mix(in srgb, var(--color-success) 12%, transparent)"
+                          : "color-mix(in srgb, var(--color-error) 12%, transparent)",
+                      }}
+                    >
+                      {disp.shortTitle}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col items-start gap-1 sm:items-end">
-              <span className="text-xs text-secondary-text">
-                {formatDate(animal.intake_date)}
-              </span>
-              <span
-                className={`intake-pill text-[10px] ${disp.isPositive ? "status-pill-success" : "status-pill-danger"}`}
-              >
-                {disp.shortTitle}
-              </span>
-            </div>
-          </div>
-          );
-        })}
-      </div>
-      {visibleCount < animals.length && (
-        <button
-          onClick={() =>
-            setVisibleCount((prev) => Math.min(prev + 5, animals.length))
-          }
-          className="w-full py-2 text-xs text-center rounded-lg btn-edit-subtle"
-        >
-          Show {Math.min(5, animals.length - visibleCount)} more (
-          {animals.length - visibleCount} remaining)
-        </button>
-      )}
-      {totalCount > animals.length && (
-        <p className="text-xs text-muted">
-          Showing {animals.length} of {totalCount} - try narrowing your search.
+            );
+          })}
+        </div>
+
+        {/* Show more */}
+        {visibleCount < animals.length && (
+          <button
+            onClick={() =>
+              setVisibleCount((prev) => Math.min(prev + 5, animals.length))
+            }
+            className="text-xs transition-colors"
+            style={{ color: "var(--color-brand-accent)" }}
+          >
+            Show {Math.min(5, animals.length - visibleCount)} more
+          </button>
+        )}
+
+        {totalCount > animals.length && (
+          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            Showing {animals.length} of {totalCount}
+          </p>
+        )}
+
+        {/* Hint */}
+        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          Tap a row to view details.
         </p>
-      )}
-      <p className="hint-row text-xs">
-        <svg
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="inline-icon inline-icon-muted"
-          aria-hidden="true"
-        >
-          <path
-            d="M8 14C11.3137 14 14 11.3137 14 8C10.6863 8 8 10.6863 8 14Z"
-            stroke="currentColor"
-            strokeWidth="1.4"
-          />
-          <path
-            d="M8 14C8 10.6863 5.31371 8 2 8C2 11.3137 4.68629 14 8 14Z"
-            stroke="currentColor"
-            strokeWidth="1.4"
-          />
-          <path d="M8 14V5.5" stroke="currentColor" strokeWidth="1.4" />
-          <path
-            d="M8 5.5C9.8 5.2 11.2 3.8 11.5 2C9.7 2.3 8.3 3.7 8 5.5Z"
-            stroke="currentColor"
-            strokeWidth="1.4"
-          />
-        </svg>
-        Tip: click a row or say "show me [intake number]" to view details.
-      </p>
+      </div>
     </Card>
   );
+}
+
+function formatShortDate(value: string | Date): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(date);
 }

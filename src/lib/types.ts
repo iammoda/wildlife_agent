@@ -6,6 +6,39 @@ export interface User {
   accountSetupCompleted: boolean;
 }
 
+export interface MedicationEntry {
+  name: string;
+  amount: string;
+}
+
+export type StoolStatus = "normal" | "diarrhea" | "none" | null;
+
+export interface DailyBriefingAlert {
+  intakeNumber: string;
+  species: string;
+  alertType:
+    | "weight_declining"
+    | "weight_increasing"
+    | "not_eating"
+    | "feeding_decreasing"
+    | "feeding_increasing"
+    | "no_stool"
+    | "diarrhea"
+    | "aspiration"
+    | "overdue"
+    | "no_logs";
+  severity: "critical" | "warning" | "positive" | "info";
+  message: string;
+}
+
+export interface CareLogTrendSummary {
+  weightTrend: "up" | "down" | "stable" | "unknown";
+  weightValues?: string[];
+  eatingWell: boolean | null;
+  stoolStatus: "normal" | "concern" | "none" | "unknown";
+  aspirationFlag: boolean;
+}
+
 export interface SummaryStats {
   total_intakes: number;
   animals_under_care: number;
@@ -29,7 +62,9 @@ export type IntentType =
   | "help"
   | "general_question"
   | "quick_status"
-  | "confirm_pending";
+  | "confirm_pending"
+  | "daily_briefing"
+  | "out_of_scope";
 
 export interface ClassifiedIntent {
   type: IntentType;
@@ -67,6 +102,7 @@ export type EmbeddedContent =
         log: DailyCareLog;
         intakeNumber: string;
         species: string;
+        trendSummary?: CareLogTrendSummary;
       };
     }
   | {
@@ -107,6 +143,15 @@ export type EmbeddedContent =
       data: {
         question: string;
         options: string[];
+      };
+    }
+  | {
+      type: "daily_briefing";
+      data: {
+        alerts: DailyBriefingAlert[];
+        totalUnderCare: number;
+        animalsWithAlerts: number;
+        animalsAllClear: number;
       };
     }
   | {
@@ -174,6 +219,10 @@ export interface ParsedCareLog {
   food_fed?: string | null;
   amount?: string | null;
   meds_and_comments?: string | null;
+  stool?: StoolStatus;
+  aspiration?: boolean | null;
+  aspiration_notes?: string | null;
+  medications?: MedicationEntry[] | null;
 }
 
 export interface Intake {
@@ -221,6 +270,10 @@ export interface DailyCareLog {
   food_fed?: string | null;
   amount?: string | null;
   meds_and_comments?: string | null;
+  stool?: StoolStatus;
+  aspiration?: boolean | null;
+  aspiration_notes?: string | null;
+  medications?: MedicationEntry[] | null;
   created_at?: string | null;
 }
 

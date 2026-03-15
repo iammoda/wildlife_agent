@@ -401,17 +401,17 @@ export function ChatInputBar({
         <div
           className="absolute bottom-full left-0 z-20 mb-2 w-64 rounded-2xl border p-2 shadow-xl backdrop-blur-sm"
           style={{
-            backgroundColor: "rgba(20, 20, 20, 0.95)",
-            borderColor: "rgba(255, 255, 255, 0.08)",
+            backgroundColor: "var(--color-bg-elevated)",
+            borderColor: "var(--color-border-light)",
           }}
           role="menu"
         >
           <button
             onClick={openUploadPicker}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-colors"
-            style={{ color: "rgba(255, 255, 255, 0.9)" }}
+            style={{ color: "var(--color-text-primary)" }}
             onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.06)";
+              e.currentTarget.style.backgroundColor = "var(--color-bg-tertiary)";
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.backgroundColor = "transparent";
@@ -424,9 +424,9 @@ export function ChatInputBar({
           <button
             onClick={handleTakeScreenshot}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-colors"
-            style={{ color: "rgba(255, 255, 255, 0.9)" }}
+            style={{ color: "var(--color-text-primary)" }}
             onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.06)";
+              e.currentTarget.style.backgroundColor = "var(--color-bg-tertiary)";
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.backgroundColor = "transparent";

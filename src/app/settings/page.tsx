@@ -232,6 +232,9 @@ export default function SettingsPage() {
             outcomes for your rehabilitation work.
           </p>
           <p className="text-xs text-muted">Version 1.0.0</p>
+          <p className="text-xs text-muted">
+            &copy; {new Date().getFullYear()} Wildlife Intake. All rights reserved.
+          </p>
         </Card>
 
         <Button onClick={handleLogout} variant="danger" className="w-full">

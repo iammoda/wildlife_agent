@@ -112,7 +112,7 @@ export function VoiceRecordButton({
             backgroundColor: isUrgent
               ? "var(--color-error)"
               : showWarning
-              ? "#B45309"
+              ? "var(--color-error)"
               : "var(--color-bg-elevated)",
             color: showWarning ? "white" : "var(--color-text-secondary)",
             boxShadow: "var(--shadow-sm)",
@@ -130,7 +130,7 @@ export function VoiceRecordButton({
           color: isRecording ? "white" : "var(--color-text-secondary)",
           backgroundColor: isRecording ? "var(--color-error)" : "transparent",
           transform: isRecording ? "scale(1.05)" : "scale(1)",
-          boxShadow: isRecording ? "0 4px 12px rgba(231, 76, 60, 0.3)" : "none",
+          boxShadow: isRecording ? "0 4px 12px color-mix(in srgb, var(--color-error) 30%, transparent)" : "none",
         }}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
       >

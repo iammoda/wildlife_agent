@@ -22,54 +22,68 @@ interface ChartCardProps {
   data: ChartData;
 }
 
+// Earthy palette matching the design system
 const COLORS = [
-  "#2D5A27",
-  "#7C5C3B",
-  "#22C55E",
-  "#4C7A5A",
-  "#C78B3A",
-  "#3B82F6",
-  "#EF4444",
-  "#8B5CF6",
-  "#14B8A6",
-  "#F97316",
+  "var(--color-brand-primary)",   // forest green
+  "#7C5C3B",                       // warm brown
+  "var(--color-brand-accent)",     // soft green
+  "#4C7A5A",                       // muted sage
+  "#C78B3A",                       // amber
+  "#6B8F71",                       // dusty green
+  "#A67C52",                       // tan
+  "#3D6B4F",                       // deep green
 ];
+
+// Chart styling derived from CSS variables (resolved at render)
+const GRID_COLOR = "#3A423A";
+const TICK_COLOR = "#8A928A";
+const TOOLTIP_BG = "#242824";
+const TOOLTIP_BORDER = "#3A423A";
+const TOOLTIP_TEXT = "#E8EAE8";
+const PRIMARY_FILL = "#2D5A27";
 
 export function ChartCard({ data }: ChartCardProps) {
   return (
-    <Card variant="bordered" className="space-y-3">
-      <h3 className="font-semibold text-primary-text">{data.title}</h3>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          {renderChart(data)}
-        </ResponsiveContainer>
+    <Card variant="bordered" className="animate-fadeIn overflow-hidden">
+      <div className="p-4 space-y-3">
+        <h3
+          className="font-title text-base font-semibold"
+          style={{ color: "var(--color-text-primary)" }}
+        >
+          {data.title}
+        </h3>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            {renderChart(data)}
+          </ResponsiveContainer>
+        </div>
       </div>
     </Card>
   );
 }
+
+const tooltipStyle = {
+  backgroundColor: TOOLTIP_BG,
+  border: `1px solid ${TOOLTIP_BORDER}`,
+  borderRadius: "8px",
+  color: TOOLTIP_TEXT,
+};
 
 function renderChart(data: ChartData) {
   switch (data.type) {
     case "bar":
       return (
         <BarChart data={data.data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#3A423A" />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
           <XAxis
             dataKey={data.xKey || "name"}
-            tick={{ fill: "#A8B0A8", fontSize: 12 }}
+            tick={{ fill: TICK_COLOR, fontSize: 12 }}
           />
-          <YAxis tick={{ fill: "#A8B0A8", fontSize: 12 }} />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#242824",
-              border: "1px solid #3A423A",
-              borderRadius: "8px",
-              color: "#F0F2F0",
-            }}
-          />
+          <YAxis tick={{ fill: TICK_COLOR, fontSize: 12 }} />
+          <Tooltip contentStyle={tooltipStyle} />
           <Bar
             dataKey={data.yKey || "value"}
-            fill="#2D5A27"
+            fill={PRIMARY_FILL}
             radius={[4, 4, 0, 0]}
           />
         </BarChart>
@@ -77,26 +91,19 @@ function renderChart(data: ChartData) {
     case "line":
       return (
         <LineChart data={data.data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#3A423A" />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
           <XAxis
             dataKey={data.xKey || "name"}
-            tick={{ fill: "#A8B0A8", fontSize: 12 }}
+            tick={{ fill: TICK_COLOR, fontSize: 12 }}
           />
-          <YAxis tick={{ fill: "#A8B0A8", fontSize: 12 }} />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#242824",
-              border: "1px solid #3A423A",
-              borderRadius: "8px",
-              color: "#F0F2F0",
-            }}
-          />
+          <YAxis tick={{ fill: TICK_COLOR, fontSize: 12 }} />
+          <Tooltip contentStyle={tooltipStyle} />
           <Line
             type="monotone"
             dataKey={data.yKey || "value"}
-            stroke="#2D5A27"
+            stroke={PRIMARY_FILL}
             strokeWidth={2}
-            dot={{ fill: "#2D5A27" }}
+            dot={{ fill: PRIMARY_FILL }}
           />
         </LineChart>
       );
@@ -116,7 +123,7 @@ function renderChart(data: ChartData) {
                 <text
                   x={Number(x)}
                   y={Number(y)}
-                  fill="#F0F2F0"
+                  fill={TOOLTIP_TEXT}
                   textAnchor="middle"
                   dominantBaseline="central"
                   fontSize={12}
@@ -125,7 +132,7 @@ function renderChart(data: ChartData) {
                 </text>
               );
             }}
-            labelLine={{ stroke: "#A8B0A8" }}
+            labelLine={{ stroke: TICK_COLOR }}
           >
             {data.data.map((_, index) => (
               <Cell
@@ -134,15 +141,8 @@ function renderChart(data: ChartData) {
               />
             ))}
           </Pie>
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#242824",
-              border: "1px solid #3A423A",
-              borderRadius: "8px",
-              color: "#F0F2F0",
-            }}
-          />
-          <Legend wrapperStyle={{ color: "#A8B0A8" }} />
+          <Tooltip contentStyle={tooltipStyle} />
+          <Legend wrapperStyle={{ color: TICK_COLOR }} />
         </PieChart>
       );
     default:

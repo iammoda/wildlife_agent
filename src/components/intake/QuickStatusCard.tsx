@@ -40,80 +40,94 @@ export function QuickStatusCard({
     }
   };
 
-  const getUrgencyStyle = (hoursAgo: number | null) => {
+  const getUrgencyStyle = (hoursAgo: number | null): React.CSSProperties => {
     if (hoursAgo === null) return { color: "var(--color-text-muted)" };
-    if (hoursAgo > 4) return { color: "var(--color-error)", fontWeight: "600" };
+    if (hoursAgo > 4) return { color: "var(--color-error)", fontWeight: 600 };
     if (hoursAgo > 2) return { color: "var(--color-brand-accent)" };
     return { color: "var(--color-text-secondary)" };
   };
 
   return (
-    <Card variant="bordered" className="space-y-3 animate-fadeIn card-accent-top">
-      <div className="flex items-center justify-between">
-        <h3 className="font-title text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
-          Quick Status
-        </h3>
-        <span
-          className="intake-pill text-xs"
-          style={{
-            backgroundColor: "var(--color-brand-light)",
-            color: "var(--color-brand-accent)",
-          }}
-        >
-          {totalUnderCare} under care
-        </span>
-      </div>
-      <div className="space-y-2">
-        {items.map((item) => (
-          <div
-            key={item.intakeNumber}
-            className={`intake-row-accent flex flex-col gap-2 px-3 py-2 border-b last:border-0 sm:flex-row sm:items-center sm:justify-between${onViewAnimal ? " cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]" : ""}`}
-            style={{ borderColor: "var(--color-border-light)" }}
-            onClick={() => onViewAnimal?.(item.intakeNumber)}
+    <Card variant="bordered" className="animate-fadeIn overflow-hidden">
+      <div className="p-4 space-y-3">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3
+            className="font-title text-base font-semibold"
+            style={{ color: "var(--color-text-primary)" }}
           >
-            <div>
-              <span className="font-medium" style={{ color: "var(--color-text-primary)" }}>
+            Quick Status
+          </h3>
+          <span
+            className="text-xs"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            {totalUnderCare} under care
+          </span>
+        </div>
+
+        {/* Rows */}
+        <div className="space-y-1">
+          {items.map((item) => (
+            <div
+              key={item.intakeNumber}
+              className="flex items-center gap-3 py-2 px-2 rounded-lg transition-colors"
+              style={{
+                cursor: onViewAnimal ? "pointer" : undefined,
+              }}
+              onClick={() => onViewAnimal?.(item.intakeNumber)}
+              onMouseEnter={(e) => {
+                if (onViewAnimal)
+                  e.currentTarget.style.backgroundColor =
+                    "var(--color-bg-tertiary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
+              {/* Intake number */}
+              <span
+                className="font-mono text-xs flex-shrink-0"
+                style={{ color: "var(--color-text-muted)" }}
+              >
                 {item.intakeNumber}
               </span>
-              <span className="ml-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+
+              {/* Species */}
+              <span
+                className="text-sm flex-1 min-w-0 truncate"
+                style={{ color: "var(--color-text-primary)" }}
+              >
                 {item.species}
               </span>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-sm sm:gap-4">
-              {item.lastWeight && (
-                <span style={{ color: getTrendColor(item.weightTrend) }}>
-                  {item.lastWeight} {getTrendIcon(item.weightTrend)}
-                </span>
-              )}
-              <span style={getUrgencyStyle(item.hoursAgo)}>
+              {/* Weight + trend */}
+              <span
+                className="text-sm flex-shrink-0"
+                style={{ color: getTrendColor(item.weightTrend) }}
+              >
+                {item.lastWeight ? (
+                  <>
+                    {item.lastWeight} {getTrendIcon(item.weightTrend)}
+                  </>
+                ) : (
+                  <span style={{ color: "var(--color-text-muted)" }}>&mdash;</span>
+                )}
+              </span>
+
+              {/* Time since last log */}
+              <span className="text-xs flex-shrink-0" style={getUrgencyStyle(item.hoursAgo)}>
                 {item.hoursAgo !== null ? `${item.hoursAgo}h ago` : "No logs"}
               </span>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+
+        {/* Hint */}
+        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          Tap a row for details.
+        </p>
       </div>
-      <p className="hint-row text-xs">
-        <svg
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="inline-icon inline-icon-muted"
-          aria-hidden="true"
-        >
-          <path
-            d="M8 14C11.3137 14 14 11.3137 14 8C10.6863 8 8 10.6863 8 14Z"
-            stroke="currentColor"
-            strokeWidth="1.4"
-          />
-          <path
-            d="M8 14C8 10.6863 5.31371 8 2 8C2 11.3137 4.68629 14 8 14Z"
-            stroke="currentColor"
-            strokeWidth="1.4"
-          />
-        </svg>
-        Tip: Click a row or say "show me [number]" for details.
-      </p>
     </Card>
   );
 }

@@ -273,7 +273,7 @@ interface FormSectionProps {
 function FormSection({ title, children, withDivider = true }: FormSectionProps) {
   return (
     <section
-      className={`space-y-4 ${withDivider ? "section-divider pb-6" : ""}`}
+      className={`space-y-4 ${withDivider ? "pb-8" : ""}`}
     >
       <h3
         className="text-base font-semibold leading-snug"

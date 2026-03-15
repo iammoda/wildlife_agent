@@ -10,9 +10,9 @@ import { AnimalsInCareList } from "@/components/intake/AnimalsInCareList";
 import { DeleteConfirmation } from "@/components/intake/DeleteConfirmation";
 import { CareLogConfirmation } from "@/components/intake/CareLogConfirmation";
 import { QuickStatusCard } from "@/components/intake/QuickStatusCard";
+import { DailyBriefingCard } from "@/components/intake/DailyBriefingCard";
 import { StatisticsCard } from "@/components/analytics/StatisticsCard";
 import { ChartCard } from "@/components/analytics/ChartCard";
-import { ProcessingIndicator } from "@/components/ui/ProcessingIndicator";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Card } from "@/components/ui/Card";
 
@@ -179,6 +179,7 @@ function renderEmbeddedContent(
           log={embedded.data.log}
           intakeNumber={embedded.data.intakeNumber}
           species={embedded.data.species}
+          trendSummary={embedded.data.trendSummary}
           onUndo={(logId) => onUndoCareLog?.(logId)}
         />
       );
@@ -197,6 +198,16 @@ function renderEmbeddedContent(
         <QuickStatusCard
           items={embedded.data.items}
           totalUnderCare={embedded.data.totalUnderCare}
+          onViewAnimal={onViewAnimal}
+        />
+      );
+    case "daily_briefing":
+      return (
+        <DailyBriefingCard
+          alerts={embedded.data.alerts}
+          totalUnderCare={embedded.data.totalUnderCare}
+          animalsWithAlerts={embedded.data.animalsWithAlerts}
+          animalsAllClear={embedded.data.animalsAllClear}
           onViewAnimal={onViewAnimal}
         />
       );
@@ -220,7 +231,7 @@ function renderEmbeddedContent(
       }
       return (
         <Card variant="bordered">
-          <p className="text-sm text-primary-text">
+          <p className="text-sm p-4" style={{ color: "var(--color-text-muted)" }}>
             {embedded.data.name} has been deleted.
           </p>
         </Card>
@@ -238,7 +249,11 @@ function renderEmbeddedContent(
         />
       );
     case "processing":
-      return <ProcessingIndicator message={embedded.message} />;
+      return (
+        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+          {embedded.message || "Processing..."}
+        </p>
+      );
     case "error":
       return <ErrorMessage message={embedded.message} />;
     default:

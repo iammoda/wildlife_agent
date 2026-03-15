@@ -25,12 +25,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const showToast = useCallback((message: string, variant: ToastVariant = "success") => {
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const toast: ToastItem = { id, message, variant };
-    setToasts((prev) => [...prev, toast]);
-    window.setTimeout(() => removeToast(id), TOAST_DURATION_MS);
-  }, [removeToast]);
+  const showToast = useCallback(
+    (message: string, variant: ToastVariant = "success") => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const toast: ToastItem = { id, message, variant };
+      setToasts((prev) => [...prev, toast]);
+      window.setTimeout(() => removeToast(id), TOAST_DURATION_MS);
+    },
+    [removeToast]
+  );
 
   const value = useMemo(() => ({ showToast }), [showToast]);
 
@@ -44,7 +47,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="rounded-lg px-4 py-3 shadow-lg border text-sm"
+            className="rounded-lg px-4 py-3 shadow-lg border text-sm animate-fadeIn"
             style={getToastStyle(toast.variant)}
             role="status"
           >
@@ -67,21 +70,28 @@ export function useToast() {
 function getToastStyle(variant: ToastVariant): React.CSSProperties {
   if (variant === "error") {
     return {
-      backgroundColor: "rgba(239, 68, 68, 0.12)",
-      color: "#FCA5A5",
-      borderColor: "rgba(239, 68, 68, 0.35)",
+      backgroundColor:
+        "color-mix(in srgb, var(--color-error) 15%, var(--color-bg-elevated))",
+      color: "var(--color-error)",
+      borderColor:
+        "color-mix(in srgb, var(--color-error) 25%, transparent)",
     };
   }
   if (variant === "info") {
     return {
-      backgroundColor: "rgba(59, 130, 246, 0.12)",
-      color: "#BFDBFE",
-      borderColor: "rgba(59, 130, 246, 0.35)",
+      backgroundColor:
+        "color-mix(in srgb, var(--color-brand-accent) 15%, var(--color-bg-elevated))",
+      color: "var(--color-brand-accent)",
+      borderColor:
+        "color-mix(in srgb, var(--color-brand-accent) 25%, transparent)",
     };
   }
+  // success
   return {
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
-    color: "#86EFAC",
-    borderColor: "rgba(34, 197, 94, 0.35)",
+    backgroundColor:
+      "color-mix(in srgb, var(--color-success) 15%, var(--color-bg-elevated))",
+    color: "var(--color-success)",
+    borderColor:
+      "color-mix(in srgb, var(--color-success) 25%, transparent)",
   };
 }

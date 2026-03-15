@@ -108,13 +108,19 @@ export async function PUT(
     if ("meds_and_comments" in bodyObj) {
       updates.meds_and_comments = bodyObj.meds_and_comments;
     }
+    if ("stool" in bodyObj) updates.stool = bodyObj.stool;
+    if ("aspiration" in bodyObj) updates.aspiration = bodyObj.aspiration;
+    if ("aspiration_notes" in bodyObj) {
+      updates.aspiration_notes = bodyObj.aspiration_notes;
+    }
+    if ("medications" in bodyObj) updates.medications = bodyObj.medications;
 
     if (Object.keys(updates).length === 0) {
       return jsonResponse(
         {
           success: false,
           error:
-            "No updatable fields provided. Include log_date, weight, food_fed, amount, or meds_and_comments.",
+            "No updatable fields provided. Include log_date, weight, food_fed, amount, stool, aspiration, medications, or meds_and_comments.",
         },
         { status: 400 }
       );

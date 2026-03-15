@@ -75,6 +75,10 @@ export async function POST(
         food_fed: body.food_fed,
         amount: body.amount,
         meds_and_comments: body.meds_and_comments,
+        stool: body.stool || null,
+        aspiration: body.aspiration || false,
+        aspiration_notes: body.aspiration ? body.aspiration_notes || null : null,
+        medications: body.medications || [],
       })
       .select()
       .single();

@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DailyCareLog } from "@/lib/types";
+import { DailyCareLog, MedicationEntry } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 
 interface CareLogsListProps {
   logs: DailyCareLog[];
@@ -20,7 +19,9 @@ export function CareLogsList({
 }: CareLogsListProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [visibleCount, setVisibleCount] = useState(5);
-  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     setIsMounted(true);
@@ -30,172 +31,209 @@ export function CareLogsList({
     setVisibleCount(5);
   }, [logs.length]);
 
-  const formatLocalDateTime = (input: string | Date) => {
-    const date = typeof input === "string" ? new Date(input) : input;
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone:
-        Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-    }).format(date);
-  };
-
   if (logs.length === 0) {
     return (
       <Card variant="bordered">
-        <p className="text-sm text-secondary-text text-center py-4">
+        <p
+          className="text-sm text-center py-4"
+          style={{ color: "var(--color-text-muted)" }}
+        >
           No care logs recorded yet.
         </p>
       </Card>
     );
   }
+
   return (
-    <Card variant="bordered" className="space-y-2 animate-fadeIn">
-      <h3 className="flex items-center gap-2 font-title text-lg font-semibold text-primary-text">
-        <LeafIcon />
-        <span>
-          Care Logs · Showing {Math.min(visibleCount, logs.length)} of{" "}
-          {totalCount > logs.length ? totalCount : logs.length}
-        </span>
-      </h3>
-      <div className="space-y-2">
-        {logs.slice(0, visibleCount).map((log) => (
-          <div
-            key={log.id}
-            className="intake-row-accent border-b py-2 px-3 last:border-0"
-            style={{ borderColor: "var(--color-border-light)" }}
+    <Card variant="bordered" className="animate-fadeIn overflow-hidden">
+      <div className="p-4 space-y-3">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3
+            className="font-title text-base font-semibold"
+            style={{ color: "var(--color-text-primary)" }}
           >
-            <div className="flex items-center justify-between mb-1 text-xs text-secondary-text">
-              <div className="meta-row">
-                <ClockIcon />
-                <span suppressHydrationWarning>
+            Care Logs
+          </h3>
+          <span
+            className="text-xs"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            {Math.min(visibleCount, logs.length)} of{" "}
+            {totalCount > logs.length ? totalCount : logs.length}
+          </span>
+        </div>
+
+        {/* Log entries */}
+        <div className="space-y-4">
+          {logs.slice(0, visibleCount).map((log) => (
+            <div key={log.id} className="space-y-1">
+              {/* Date + weight */}
+              <div className="flex items-center justify-between">
+                <span
+                  className="text-sm"
+                  style={{ color: "var(--color-text-primary)" }}
+                  suppressHydrationWarning
+                >
                   {isMounted ? formatLocalDateTime(log.log_date) : ""}
+                  {log.weight && (
+                    <span style={{ color: "var(--color-text-muted)" }}>
+                      {" \u00B7 "}
+                      {log.weight}
+                    </span>
+                  )}
                 </span>
               </div>
-              {log.weight && (
-                <span className="weight-pill">
-                  {log.weight}
-                </span>
-              )}
-            </div>
-            <div className="text-sm text-secondary-text space-y-1">
+
+              {/* Food */}
               {log.food_fed && (
-                <p>
-                  <span style={{ color: "var(--color-brand-accent)" }}>Fed:</span>{" "}
+                <p
+                  className="text-sm"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
                   {log.food_fed}
                   {log.amount && ` (${log.amount})`}
                 </p>
               )}
-              {log.meds_and_comments && <p className="italic text-muted">{log.meds_and_comments}</p>}
-            </div>
-            {(onEditLog || onDeleteLog) && (
-              <div className="flex gap-2 mt-2 ml-auto justify-end">
-                {onEditLog && confirmingDeleteId !== log.id && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="btn-edit-subtle text-xs"
-                    onClick={() => onEditLog(log)}
-                  >
-                    Edit
-                  </Button>
-                )}
-                {onDeleteLog && confirmingDeleteId === log.id ? (
-                  <>
+
+              {/* Stool / Aspiration */}
+              {(log.stool || log.aspiration) && (
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                  {log.stool && (
                     <span
-                      className="text-xs self-center"
-                      style={{ color: "var(--color-error)" }}
-                    >
-                      Delete this log?
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="btn-edit-subtle text-xs"
-                      onClick={() => setConfirmingDeleteId(null)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="btn-delete-ghost text-xs"
-                      onClick={() => {
-                        onDeleteLog(log.id);
-                        setConfirmingDeleteId(null);
+                      className="text-xs"
+                      style={{
+                        color:
+                          log.stool === "diarrhea"
+                            ? "var(--color-error)"
+                            : log.stool === "none"
+                              ? "var(--color-brand-accent)"
+                              : "var(--color-text-muted)",
                       }}
                     >
-                      Confirm
-                    </Button>
-                  </>
-                ) : onDeleteLog ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="btn-delete-ghost text-xs"
-                    onClick={() => setConfirmingDeleteId(log.id)}
-                  >
-                    Delete
-                  </Button>
-                ) : null}
-              </div>
-            )}
-          </div>
-        ))}
+                      Stool: {log.stool === "normal" ? "Normal" : log.stool === "diarrhea" ? "Diarrhea" : "None"}
+                    </span>
+                  )}
+                  {log.aspiration && (
+                    <span
+                      className="text-xs font-medium"
+                      style={{ color: "var(--color-error)" }}
+                    >
+                      Aspiration{log.aspiration_notes ? `: ${log.aspiration_notes}` : ""}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Medications */}
+              {(() => {
+                const meds = log.medications as MedicationEntry[] | null | undefined;
+                if (!meds || meds.length === 0) return null;
+                return (
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                    {meds.map((med, i) => (
+                      <span
+                        key={i}
+                        className="text-xs"
+                        style={{ color: "var(--color-text-secondary)" }}
+                      >
+                        {med.name}{med.amount ? ` ${med.amount}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Notes */}
+              {log.meds_and_comments && (
+                <p
+                  className="text-sm italic"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  {log.meds_and_comments}
+                </p>
+              )}
+
+              {/* Actions */}
+              {(onEditLog || onDeleteLog) && (
+                <div className="flex items-center gap-3 pt-0.5">
+                  {confirmingDeleteId === log.id ? (
+                    <>
+                      <span
+                        className="text-xs"
+                        style={{ color: "var(--color-error)" }}
+                      >
+                        Delete this log?
+                      </span>
+                      <button
+                        className="text-xs transition-colors"
+                        style={{ color: "var(--color-text-muted)" }}
+                        onClick={() => setConfirmingDeleteId(null)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="text-xs transition-colors"
+                        style={{ color: "var(--color-error)" }}
+                        onClick={() => {
+                          onDeleteLog?.(log.id);
+                          setConfirmingDeleteId(null);
+                        }}
+                      >
+                        Confirm
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {onEditLog && (
+                        <button
+                          className="text-xs transition-colors"
+                          style={{ color: "var(--color-text-muted)" }}
+                          onClick={() => onEditLog(log)}
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {onDeleteLog && (
+                        <button
+                          className="text-xs transition-colors"
+                          style={{ color: "var(--color-text-muted)" }}
+                          onClick={() => setConfirmingDeleteId(log.id)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Show more */}
+        {visibleCount < logs.length && (
+          <button
+            onClick={() =>
+              setVisibleCount((prev) => Math.min(prev + 5, logs.length))
+            }
+            className="text-xs transition-colors"
+            style={{ color: "var(--color-brand-accent)" }}
+          >
+            Show {Math.min(5, logs.length - visibleCount)} more
+          </button>
+        )}
       </div>
-      {visibleCount < logs.length && (
-        <button
-          onClick={() =>
-            setVisibleCount((prev) => Math.min(prev + 5, logs.length))
-          }
-          className="w-full py-2 text-xs text-center rounded-lg btn-edit-subtle"
-        >
-          Show {Math.min(5, logs.length - visibleCount)} more (
-          {logs.length - visibleCount} remaining)
-        </button>
-      )}
     </Card>
   );
 }
 
-function LeafIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="inline-icon"
-      aria-hidden="true"
-      style={{ color: "var(--color-brand-primary)" }}
-    >
-      <path
-        d="M8 14C11.3137 14 14 11.3137 14 8C10.6863 8 8 10.6863 8 14Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-      />
-      <path d="M8 14V6" stroke="currentColor" strokeWidth="1.4" />
-      <path
-        d="M8 6C9.7 5.7 11.1 4.3 11.4 2.6C9.7 2.9 8.3 4.3 8 6Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-      />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="inline-icon inline-icon-muted"
-      aria-hidden="true"
-    >
-      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M8 5.2V8.2L10 9.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
+function formatLocalDateTime(input: string | Date): string {
+  const date = typeof input === "string" ? new Date(input) : input;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }

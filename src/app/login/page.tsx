@@ -75,6 +75,12 @@ export default function LoginPage() {
             }}
           />
         </div>
+        <p
+          className="text-center text-xs mt-8"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          &copy; {new Date().getFullYear()} Wildlife Intake. All rights reserved.
+        </p>
       </div>
     </div>
   );

@@ -104,6 +104,20 @@ Classify the user's message into ONE of these intents:
 16. "general_question" - Wildlife rehab questions not covered above
     - Clinical care questions, rehab best practices
     - NOT public advice about finding injured animals
+17. "daily_briefing" - User wants a daily summary of concerns and trends
+    - "daily briefing", "briefing", "morning report"
+    - "what should I know today", "what do I need to make note of today"
+    - "anything to note", "any concerns", "daily check-in"
+    - "what needs attention", "how are my animals doing"
+    - "alerts", "any issues", "what's important today"
+18. "out_of_scope" - Message has NOTHING to do with wildlife rehabilitation
+    - Coding questions, homework help, creative writing, general knowledge
+    - Anything not related to wildlife rehab, animal care, veterinary topics, or intake management
+    - "write me a poem", "help me with my resume", "what's the capital of France"
+    - "write code for me", "explain quantum physics", "tell me a joke"
+    IMPORTANT: If a message is clearly unrelated to wildlife rehabilitation,
+    animal care, veterinary topics, or intake management, ALWAYS classify as "out_of_scope".
+    Do NOT fall through to "general_question" for non-wildlife topics.
 Respond with JSON: { "type": string, "params": object, "confidence": number }
 PRIORITY RULES:
 - "list_all_intakes" when user explicitly asks for ALL intakes/records
@@ -121,6 +135,14 @@ CRITICAL CONTEXT:
 - They are NOT a member of the public who found an injured animal
 - They use this app to log intakes, track care, and manage their intakes
 - Assume professional knowledge of wildlife rehabilitation practices
+SCOPE RESTRICTION:
+- You MUST ONLY answer questions related to wildlife rehabilitation, animal care,
+  veterinary topics, or intake/care log management.
+- If the question is NOT about these topics, respond with EXACTLY this JSON and nothing else:
+  {"out_of_scope": true}
+- Do NOT answer questions about coding, homework, creative writing, general knowledge,
+  recipes, math, history, entertainment, or ANY topic unrelated to wildlife rehabilitation.
+- When in doubt about whether a question is in scope, err on the side of rejecting it.
 RESPONSE GUIDELINES:
 - Provide professional-level guidance appropriate for a licensed rehabber
 - NEVER say "contact a wildlife rehabilitator" - THEY ARE the rehabilitator
@@ -131,8 +153,7 @@ RESPONSE GUIDELINES:
   - Species and description
   - How/where the animal was found
   - Finder contact information (name, phone)
-  - Animal's condition and any immediate care given
-If the question is clearly not about wildlife rehab, politely redirect to intake management.`;
+  - Animal's condition and any immediate care given`;
 
 export const INTAKE_PARSING_PROMPT = `You are a data extraction assistant for a wildlife rehabilitation intake system.
 CURRENT DATE AND TIME: {CURRENT_DATETIME}
@@ -225,14 +246,21 @@ Extract these fields from the user's message:
 | weight | Current weight with unit | "48g", "52 grams" |
 | food_fed | Type of food/formula given | "Esbilac", "Fox Valley 20/50", "mice" |
 | amount | Amount fed | "5ml", "2 pinkies", "10cc" |
-| meds_and_comments | Medications and notes | "Baytril 0.02ml, looking stronger" |
+| stool | Stool status | "normal", "diarrhea", "none", or null if not mentioned |
+| aspiration | Whether aspiration occurred | true or false (default false) |
+| aspiration_notes | Details about aspiration | "minor aspiration during feeding, cleared quickly" |
+| medications | Array of medications given | [{"name": "Baytril", "amount": "0.02ml"}] |
+| meds_and_comments | General observations and notes | "looking stronger, eyes brighter" |
 EXTRACTION RULES:
 - intake_number is REQUIRED - if not found, return { error: "No intake number specified" }
 - IMPORTANT: If no date/time is mentioned, use the current date and time
 - If user says "today", "this morning", "just now", use current date
 - If user says "yesterday", calculate yesterday's date from current date
 - For weight, accept any format (e.g., "45g", "1.5 oz", "200 grams") and return as-is
-- Combine all medication and observation notes into meds_and_comments
+- For stool: look for keywords like "poop", "stool", "BM", "bowel movement", "diarrhea", "loose stool", "no poop", "no stool", "didn't poop". Return "normal" for normal stool, "diarrhea" for loose/watery/diarrhea, "none" for no stool/didn't poop. Return null if not mentioned.
+- For aspiration: look for keywords like "aspirated", "aspiration", "fluid in lungs", "inhaled formula". Set to true if aspiration occurred.
+- For medications: extract EACH medication as a separate entry with name and amount/dosage. Examples: "gave Baytril 0.02ml and meloxicam 0.01ml" -> [{"name": "Baytril", "amount": "0.02ml"}, {"name": "Meloxicam", "amount": "0.01ml"}]. Return empty array if no medications mentioned.
+- For meds_and_comments: put general observations, behavioral notes, and non-medication comments here. Do NOT duplicate medication info here.
 Respond with a JSON object containing the extracted fields.`;
 
 export const INTAKE_UPDATE_PARSING_PROMPT = `You are extracting field updates from a wildlife rehabilitator's message about an existing intake record.

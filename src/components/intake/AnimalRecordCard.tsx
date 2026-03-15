@@ -2,9 +2,8 @@
 
 import { Intake, IntakeWithRelations } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
-import { formatDate } from "@/lib/utils";
-import { getDispositionInfo } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
+import { getDispositionInfo } from "@/lib/constants";
 
 interface AnimalRecordCardProps {
   intake: Intake | IntakeWithRelations;
@@ -21,77 +20,105 @@ export function AnimalRecordCard({
   onDelete,
   onAddCareLog,
 }: AnimalRecordCardProps) {
-  const relationDisposition = "dispositions" in intake ? intake.dispositions : null;
+  const relationDisposition =
+    "dispositions" in intake ? intake.dispositions : null;
   const relationCode = Array.isArray(relationDisposition)
     ? relationDisposition[0]?.disposition_code
     : relationDisposition?.disposition_code;
   const rawDisposition = intake.disposition ?? relationCode;
   const dispInfo = getDispositionInfo(rawDisposition);
 
+  // Build compact subtitle
+  const subtitleParts: string[] = [];
+  const dateStr = formatShortDate(intake.intake_date);
+  if (dateStr) subtitleParts.push(dateStr);
+  const qty = intake.quantity ?? 1;
+  subtitleParts.push(qty === 1 ? "1 animal" : `${qty} animals`);
+  if (intake.sex && intake.sex !== "Unknown") subtitleParts.push(intake.sex);
+  if (intake.intake_reason) subtitleParts.push(intake.intake_reason);
+
+  // Collect detail lines (only populated fields)
+  const details: { label: string; value: string }[] = [];
+  if (intake.found_location) details.push({ label: "Found", value: intake.found_location });
+  if (intake.finder_name) {
+    let finderVal = intake.finder_name;
+    if (intake.finder_phone) finderVal += ` \u00B7 ${intake.finder_phone}`;
+    details.push({ label: "Finder", value: finderVal });
+  }
+  if (intake.notes) details.push({ label: "Notes", value: intake.notes });
+
   return (
-    <Card variant="bordered" className="space-y-5 p-5 card-accent-top animate-fadeIn">
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <h3 className="font-title text-xl font-semibold text-primary-text">
-            {intake.species}
-          </h3>
-          <p
-            className="inline-flex rounded-full px-2.5 py-1 text-xs font-mono"
+    <Card variant="bordered" className="animate-fadeIn overflow-hidden">
+      <div className="p-4 space-y-2">
+        {/* Headline: species + status */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3
+              className="font-title text-lg font-semibold leading-tight"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {intake.species}
+            </h3>
+            <span
+              className="text-xs font-mono"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              {intake.intake_number}
+            </span>
+          </div>
+          <span
+            className="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
             style={{
-              backgroundColor: "var(--color-bg-tertiary)",
-              color: "var(--color-text-secondary)",
-              border: "1px solid var(--color-border)",
+              color: dispInfo.isPositive
+                ? "var(--color-success)"
+                : "var(--color-error)",
+              backgroundColor: dispInfo.isPositive
+                ? "color-mix(in srgb, var(--color-success) 12%, transparent)"
+                : "color-mix(in srgb, var(--color-error) 12%, transparent)",
             }}
           >
-            {intake.intake_number}
-          </p>
+            {dispInfo.shortTitle}
+          </span>
         </div>
-        <StatusBadge
-          status={dispInfo.shortTitle}
-          isPositive={dispInfo.isPositive}
-        />
-      </div>
 
-      <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-        <LabelValueRow label="Intake Date" value={formatDate(intake.intake_date)} />
-        <LabelValueRow label="Quantity" value={String(intake.quantity)} />
-        <LabelValueRow label="Sex" value={intake.sex} />
-        {intake.intake_reason && <LabelValueRow label="Reason" value={intake.intake_reason} />}
-      </div>
+        {/* Compact subtitle */}
+        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+          {subtitleParts.join(" \u00B7 ")}
+        </p>
 
-      {(intake.found_location || intake.finder_name || intake.notes) && (
-        <div className="section-divider space-y-2 pt-3">
-          {intake.found_location && (
-            <div className="meta-row text-sm">
-              <LocationIcon />
-              <p>
-                <span className="text-secondary-text">Found:</span>{" "}
-                <span className="text-primary-text">{intake.found_location}</span>
-              </p>
-            </div>
-          )}
-          {intake.finder_name && (
-            <div className="meta-row text-sm">
-              <FinderIcon />
-              <p>
-                <span className="text-secondary-text">Finder:</span>{" "}
-                <span className="text-primary-text">
-                  {intake.finder_name}
-                  {intake.finder_phone && ` \u00b7 ${intake.finder_phone}`}
+        {/* Detail lines */}
+        {details.length > 0 && (
+          <div className="pt-1 space-y-1">
+            {details.map(({ label, value }) => (
+              <p key={label} className="text-sm">
+                <span style={{ color: "var(--color-text-muted)" }}>
+                  {label}:{" "}
+                </span>
+                <span style={{ color: "var(--color-text-primary)" }}>
+                  {value}
                 </span>
               </p>
-            </div>
-          )}
-          {intake.notes && (
-            <div className="text-sm italic text-secondary-text">{intake.notes}</div>
-          )}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
+      {/* Actions */}
       {(showEditButton || onAddCareLog || onDelete) && (
         <div
-          className="section-divider flex flex-wrap gap-2 pt-3"
+          className="flex items-center gap-2 px-4 py-3"
+          style={{ borderTop: "1px solid var(--color-border-light)" }}
         >
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="text-sm transition-colors"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              Delete
+            </button>
+          )}
+          <div className="flex-1" />
           {showEditButton && onEdit && (
             <Button
               variant="ghost"
@@ -112,80 +139,19 @@ export function AnimalRecordCard({
               Add Care Log
             </Button>
           )}
-          {onDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="btn-delete-ghost"
-              onClick={onDelete}
-            >
-              Delete
-            </Button>
-          )}
         </div>
       )}
     </Card>
   );
 }
 
-function LabelValueRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border-b pb-2.5" style={{ borderColor: "var(--color-border-light)" }}>
-      <p className="text-xs font-medium text-secondary-text">{label}</p>
-      <p className="mt-1 text-base font-medium leading-relaxed text-primary-text">{value}</p>
-    </div>
-  );
-}
-
-function StatusBadge({
-  status,
-  isPositive,
-}: {
-  status: string;
-  isPositive: boolean;
-}) {
-  return (
-    <span className={`intake-pill text-xs ${isPositive ? "status-pill-success" : "status-pill-danger"}`}>
-      {status}
-    </span>
-  );
-}
-
-function LocationIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="inline-icon inline-icon-muted"
-      aria-hidden="true"
-    >
-      <path
-        d="M8 14C8 14 12 10 12 6.8C12 4.7 10.2 3 8 3C5.8 3 4 4.7 4 6.8C4 10 8 14 8 14Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-      />
-      <circle cx="8" cy="6.8" r="1.3" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
-  );
-}
-
-function FinderIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="inline-icon inline-icon-muted"
-      aria-hidden="true"
-    >
-      <circle cx="8" cy="5" r="2.2" stroke="currentColor" strokeWidth="1.4" />
-      <path
-        d="M3.5 13C3.9 10.8 5.5 9.5 8 9.5C10.5 9.5 12.1 10.8 12.5 13"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+function formatShortDate(value: string | Date): string | undefined {
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return undefined;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }

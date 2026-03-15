@@ -21,11 +21,19 @@ import {
   ChartData,
   ChatResponse,
   ChatContext,
+  CareLogTrendSummary,
+  DailyBriefingAlert,
   IntentType,
+  MedicationEntry,
   ParsedCareLog,
   ParsedIntake,
   QuickStatusItem,
 } from "@/lib/types";
+import {
+  compileDailyBriefing,
+  generateCareLogSummary,
+  type AnimalWithLogs,
+} from "@/lib/trend-analysis";
 import {
   DISPOSITION_PERM_NON_RELEASABLE,
   DISPOSITION_RELEASED,
@@ -98,7 +106,10 @@ function hasCareLogDetails(parsed: ParsedCareLog): boolean {
     parsed.weight ||
       parsed.food_fed ||
       parsed.amount ||
-      parsed.meds_and_comments
+      parsed.meds_and_comments ||
+      parsed.stool ||
+      parsed.aspiration ||
+      (parsed.medications && parsed.medications.length > 0)
   );
 }
 
@@ -463,6 +474,8 @@ async function handleIntent(
       return await handleDeleteCareLog(intent.params, userId, context);
     case "quick_status":
       return await handleQuickStatus(userId);
+    case "daily_briefing":
+      return await handleDailyBriefing(userId);
     case "confirm_pending":
       return await handleConfirmPending(context, userId);
     case "statistics":
@@ -487,11 +500,14 @@ async function handleIntent(
 • **Update care logs** - Say "update care log for [number]"
 • **Delete care logs** - Say "delete care log for [number]"
 • **Quick status** - Say "status" or "daily check"
+• **Daily briefing** - Say "daily briefing" or "what should I know today?"
 • **View statistics** - Ask "how many squirrels this year?"
 • **Upload forms** - Click the camera icon to scan a paper form
 What would you like to do?`,
         },
       };
+    case "out_of_scope":
+      return await handleOutOfScope();
     case "general_question":
     default:
       return await handleGeneralQuestion(originalMessage);
@@ -784,6 +800,14 @@ async function handleAddCareLog(
     }
   }
 
+  // Normalize medications
+  const medications: MedicationEntry[] | null =
+    parsed.medications && parsed.medications.length > 0
+      ? parsed.medications.filter(
+          (m: MedicationEntry) => m.name.trim() !== ""
+        )
+      : null;
+
   const { data: log, error } = await supabaseAdmin
     .from("daily_care_logs")
     .insert({
@@ -794,6 +818,10 @@ async function handleAddCareLog(
       food_fed: parsed.food_fed,
       amount: parsed.amount,
       meds_and_comments: parsed.meds_and_comments,
+      stool: parsed.stool || null,
+      aspiration: parsed.aspiration || false,
+      aspiration_notes: parsed.aspiration ? parsed.aspiration_notes || null : null,
+      medications: medications || [],
     })
     .select()
     .single();
@@ -806,28 +834,31 @@ async function handleAddCareLog(
     };
   }
 
+  // Fetch previous logs for trend summary
+  const { data: previousLogs } = await supabaseAdmin
+    .from("daily_care_logs")
+    .select("*")
+    .eq("intake_id", intake.id)
+    .neq("id", log.id)
+    .order("log_date", { ascending: false })
+    .limit(10);
+
+  // Generate trend summary
+  const trendSummary = generateCareLogSummary(log, previousLogs || []);
+
+  // Check for large weight warnings
   let weightWarning = "";
-  if (normalizedWeight) {
-    const { data: previousLogs } = await supabaseAdmin
-      .from("daily_care_logs")
-      .select("weight, log_date")
-      .eq("intake_id", intake.id)
-      .neq("id", log.id)
-      .order("log_date", { ascending: false })
-      .limit(1);
+  if (normalizedWeight && previousLogs && previousLogs.length > 0 && previousLogs[0].weight) {
+    const prevWeight = parseWeightToGrams(previousLogs[0].weight);
+    const newWeight = parseWeightToGrams(normalizedWeight);
 
-    if (previousLogs && previousLogs.length > 0 && previousLogs[0].weight) {
-      const prevWeight = parseWeightToGrams(previousLogs[0].weight);
-      const newWeight = parseWeightToGrams(normalizedWeight);
-
-      if (prevWeight !== null && newWeight !== null && prevWeight > 0) {
-        const changePercent = ((newWeight - prevWeight) / prevWeight) * 100;
-        if (Math.abs(changePercent) > 50) {
-          const direction = changePercent > 0 ? "increase" : "decrease";
-          weightWarning = `Warning: Weight ${direction} of ${Math.abs(
-            changePercent
-          ).toFixed(0)}% from previous (${previousLogs[0].weight}).`;
-        }
+    if (prevWeight !== null && newWeight !== null && prevWeight > 0) {
+      const changePercent = ((newWeight - prevWeight) / prevWeight) * 100;
+      if (Math.abs(changePercent) > 50) {
+        const direction = changePercent > 0 ? "increase" : "decrease";
+        weightWarning = `Warning: Weight ${direction} of ${Math.abs(
+          changePercent
+        ).toFixed(0)}% from previous (${previousLogs[0].weight}).`;
       }
     }
   }
@@ -842,6 +873,7 @@ async function handleAddCareLog(
           log,
           intakeNumber: intake.intake_number,
           species: intake.species,
+          trendSummary,
         },
       },
     },
@@ -1871,6 +1903,109 @@ async function handleQuickStatus(userId: string): Promise<HandlerResult> {
   };
 }
 
+async function handleDailyBriefing(userId: string): Promise<HandlerResult> {
+  const { data: intakes } = await supabaseAdmin
+    .from("intakes")
+    .select(
+      `
+      id,
+      intake_number,
+      species,
+      disposition,
+      daily_care_logs (
+        id,
+        log_date,
+        weight,
+        food_fed,
+        amount,
+        meds_and_comments,
+        stool,
+        aspiration,
+        aspiration_notes,
+        medications
+      ),
+      dispositions (
+        disposition_code
+      )
+    `
+    )
+    .eq("user_id", userId)
+    .order("intake_date", { ascending: false })
+    .limit(50);
+
+  if (!intakes || intakes.length === 0) {
+    return {
+      response: {
+        message:
+          "You don't have any intakes yet. Say 'new intake' to record your first animal.",
+      },
+    };
+  }
+
+  const underCare = intakes.filter((intake: any) =>
+    isCurrentlyInCare(getIntakeDispositionCode(intake))
+  );
+
+  if (underCare.length === 0) {
+    return {
+      response: {
+        message:
+          "No animals currently under care. All intakes have been released or disposed.",
+      },
+    };
+  }
+
+  // Build animal data for analysis — sort each animal's logs newest-first
+  const animals: AnimalWithLogs[] = underCare.map((intake: any) => ({
+    intakeNumber: intake.intake_number,
+    species: intake.species,
+    logs: (intake.daily_care_logs || []).sort(
+      (a: any, b: any) =>
+        new Date(b.log_date).getTime() - new Date(a.log_date).getTime()
+    ),
+  }));
+
+  const alerts = compileDailyBriefing(animals);
+
+  // Count animals with concerns vs all-clear
+  const animalsWithConcerns = new Set<string>();
+  for (const alert of alerts) {
+    if (
+      alert.severity === "critical" ||
+      alert.severity === "warning" ||
+      alert.severity === "info"
+    ) {
+      animalsWithConcerns.add(alert.intakeNumber);
+    }
+  }
+
+  const animalsWithAlerts = animalsWithConcerns.size;
+  const animalsAllClear = underCare.length - animalsWithAlerts;
+
+  const message =
+    animalsWithAlerts > 0
+      ? `Daily briefing: ${animalsWithAlerts} animal${animalsWithAlerts === 1 ? "" : "s"} need${animalsWithAlerts === 1 ? "s" : ""} attention.`
+      : "";
+
+  return {
+    response: {
+      message,
+      embedded: {
+        type: "daily_briefing",
+        data: {
+          alerts,
+          totalUnderCare: underCare.length,
+          animalsWithAlerts,
+          animalsAllClear,
+        },
+      },
+    },
+    newContext: {
+      lastIntent: "daily_briefing",
+    },
+  };
+}
+
 async function handleStatistics(
   params: Record<string, unknown>,
   userId: string,
@@ -2252,6 +2387,23 @@ async function handleStatistics(
   };
 }
 
+const OUT_OF_SCOPE_MESSAGE = `I'm designed specifically for wildlife rehabilitation intake management. I can help you with:
+
+• **Record new intakes** - Describe the animal or say "new intake"
+• **Add care logs** - Track feeding, weight, medications, and stool
+• **Find and edit animals** - Look up and update intake records
+• **Daily briefing** - Get alerts and trends across all animals
+• **View statistics** - Charts and breakdowns of your intakes
+• **Clinical questions** - Wildlife rehab and animal care guidance
+
+What would you like to do?`;
+
+async function handleOutOfScope(): Promise<HandlerResult> {
+  return {
+    response: { message: OUT_OF_SCOPE_MESSAGE },
+  };
+}
+
 async function handleGeneralQuestion(message: string): Promise<HandlerResult> {
   const response = await openai.chat.completions.create({
     model: "gpt-4.1",
@@ -2265,6 +2417,18 @@ async function handleGeneralQuestion(message: string): Promise<HandlerResult> {
   const answer =
     response.choices[0]?.message?.content ||
     "I'm not sure how to help with that.";
+
+  // Safety check: if the LLM flagged the question as out of scope
+  try {
+    const parsed = JSON.parse(answer);
+    if (parsed.out_of_scope === true) {
+      return {
+        response: { message: OUT_OF_SCOPE_MESSAGE },
+      };
+    }
+  } catch {
+    // Not JSON — it's a normal answer, continue
+  }
 
   return {
     response: { message: answer },
