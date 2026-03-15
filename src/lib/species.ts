@@ -1,3 +1,10 @@
+export const SQUIRREL_SPECIES_OPTIONS = [
+  "Flying Squirrel",
+  "Fox Squirrel",
+  "Eastern Grey Squirrel",
+  "Ground Squirrel",
+] as const;
+
 const SQUIRREL_TYPE_PATTERNS = [
   {
     label: "Flying Squirrel",

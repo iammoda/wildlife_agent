@@ -20,6 +20,7 @@ export function CareLogsList({
 }: CareLogsListProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [visibleCount, setVisibleCount] = useState(5);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -91,7 +92,7 @@ export function CareLogsList({
             </div>
             {(onEditLog || onDeleteLog) && (
               <div className="flex gap-2 mt-2 ml-auto justify-end">
-                {onEditLog && (
+                {onEditLog && confirmingDeleteId !== log.id && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -101,16 +102,44 @@ export function CareLogsList({
                     Edit
                   </Button>
                 )}
-                {onDeleteLog && (
+                {onDeleteLog && confirmingDeleteId === log.id ? (
+                  <>
+                    <span
+                      className="text-xs self-center"
+                      style={{ color: "var(--color-error)" }}
+                    >
+                      Delete this log?
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="btn-edit-subtle text-xs"
+                      onClick={() => setConfirmingDeleteId(null)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="btn-delete-ghost text-xs"
+                      onClick={() => {
+                        onDeleteLog(log.id);
+                        setConfirmingDeleteId(null);
+                      }}
+                    >
+                      Confirm
+                    </Button>
+                  </>
+                ) : onDeleteLog ? (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="btn-delete-ghost text-xs"
-                    onClick={() => onDeleteLog(log.id)}
+                    onClick={() => setConfirmingDeleteId(log.id)}
                   >
                     Delete
                   </Button>
-                )}
+                ) : null}
               </div>
             )}
           </div>

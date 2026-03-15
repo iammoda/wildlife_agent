@@ -103,6 +103,13 @@ export type EmbeddedContent =
       data: ChartData;
     }
   | {
+      type: "species_clarification";
+      data: {
+        question: string;
+        options: string[];
+      };
+    }
+  | {
       type: "processing";
       message?: string;
     }

@@ -11,6 +11,7 @@ interface AnimalsInCareListProps {
   totalCount: number;
   mode?: "under_care" | "all_intakes";
   statusFilter?: string;
+  onViewAnimal?: (intakeNumber: string) => void;
 }
 
 export function AnimalsInCareList({
@@ -18,6 +19,7 @@ export function AnimalsInCareList({
   totalCount,
   mode = "under_care",
   statusFilter,
+  onViewAnimal,
 }: AnimalsInCareListProps) {
   const [visibleCount, setVisibleCount] = useState(5);
   const title = mode === "all_intakes" ? "All Intakes" : "Animals Under Care";
@@ -70,7 +72,8 @@ export function AnimalsInCareList({
           return (
           <div
             key={animal.id}
-            className="intake-row-accent flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+            className={`intake-row-accent flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between${onViewAnimal ? " cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]" : ""}`}
+            onClick={() => onViewAnimal?.(animal.intake_number)}
           >
             <div className="flex items-center gap-3">
               <span
@@ -149,7 +152,7 @@ export function AnimalsInCareList({
             strokeWidth="1.4"
           />
         </svg>
-        Tip: say "show me [intake number]" to view details.
+        Tip: click a row or say "show me [intake number]" to view details.
       </p>
     </Card>
   );

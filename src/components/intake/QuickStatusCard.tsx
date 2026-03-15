@@ -6,20 +6,22 @@ import { Card } from "@/components/ui/Card";
 interface QuickStatusCardProps {
   items: QuickStatusItem[];
   totalUnderCare: number;
+  onViewAnimal?: (intakeNumber: string) => void;
 }
 
 export function QuickStatusCard({
   items,
   totalUnderCare,
+  onViewAnimal,
 }: QuickStatusCardProps) {
   const getTrendIcon = (trend: QuickStatusItem["weightTrend"]) => {
     switch (trend) {
       case "up":
-        return "up";
+        return "\u2191";
       case "down":
-        return "down";
+        return "\u2193";
       case "stable":
-        return "flat";
+        return "\u2192";
       default:
         return "";
     }
@@ -65,8 +67,9 @@ export function QuickStatusCard({
         {items.map((item) => (
           <div
             key={item.intakeNumber}
-            className="intake-row-accent flex flex-col gap-2 px-3 py-2 border-b last:border-0 sm:flex-row sm:items-center sm:justify-between"
+            className={`intake-row-accent flex flex-col gap-2 px-3 py-2 border-b last:border-0 sm:flex-row sm:items-center sm:justify-between${onViewAnimal ? " cursor-pointer transition-colors hover:bg-[var(--color-bg-tertiary)]" : ""}`}
             style={{ borderColor: "var(--color-border-light)" }}
+            onClick={() => onViewAnimal?.(item.intakeNumber)}
           >
             <div>
               <span className="font-medium" style={{ color: "var(--color-text-primary)" }}>
@@ -109,7 +112,7 @@ export function QuickStatusCard({
             strokeWidth="1.4"
           />
         </svg>
-        Tip: Say "show me [number]" for details or "fed [number]" to log care.
+        Tip: Click a row or say "show me [number]" for details.
       </p>
     </Card>
   );

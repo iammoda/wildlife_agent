@@ -15,7 +15,10 @@ import {
   isRequiredIntakeFieldMissing,
 } from "@/lib/constants";
 import { isSupportedDocument } from "@/lib/document-upload";
-import { getSpeciesClarificationMessage } from "@/lib/species";
+import {
+  requiresSpeciesClarification,
+  SQUIRREL_SPECIES_OPTIONS,
+} from "@/lib/species";
 
 const MAX_MESSAGES = 100;
 const UNSUPPORTED_DOCUMENT_MESSAGE =
@@ -137,9 +140,7 @@ export function useChat() {
 
   const matchesCommand = (text: string, commands: string[]): boolean => {
     const normalized = text.toLowerCase().trim();
-    return commands.some(
-      (cmd) => normalized === cmd || normalized.includes(cmd)
-    );
+    return commands.some((cmd) => normalized === cmd);
   };
 
   const buildParseIntakeResponse = (
@@ -162,6 +163,26 @@ export function useChat() {
     pendingMessageIdRef.current = null;
   }, []);
 
+  const discardPendingIntake = useCallback(() => {
+    // Remove intake_confirmation and species_clarification cards from messages
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (
+          msg.embedded?.type === "intake_confirmation" ||
+          msg.embedded?.type === "species_clarification"
+        ) {
+          // Remove the embedded content; keep the text if any, or drop the message
+          const { ...rest } = msg;
+          return { ...rest, embedded: undefined };
+        }
+        return msg;
+      }).filter((msg) => msg.content || msg.embedded) // Drop empty messages
+    );
+    setPendingIntake(null);
+    pendingMessageIdRef.current = null;
+    addMessage("assistant", "Intake discarded. What would you like to do?");
+  }, [addMessage]);
+
   const upsertPendingMessage = useCallback(
     (content: string, embedded?: EmbeddedContent) => {
       if (pendingMessageIdRef.current) {
@@ -179,12 +200,16 @@ export function useChat() {
     async (data: ParsedIntake) => {
       setIsProcessing(true);
       try {
-        const clarificationMessage = getSpeciesClarificationMessage(
-          data.species
-        );
-        if (clarificationMessage) {
+        if (requiresSpeciesClarification(data.species)) {
           setPendingIntake(data);
-          upsertPendingMessage(clarificationMessage);
+          addMessage("assistant", "", {
+            type: "species_clarification",
+            data: {
+              question: "What type of squirrel?",
+              options: [...SQUIRREL_SPECIES_OPTIONS],
+            },
+          });
+          setIsProcessing(false);
           return;
         }
 
@@ -359,32 +384,42 @@ export function useChat() {
       const { parsed, missingFields, isComplete } = response;
 
       setPendingIntake(parsed);
-      const clarificationMessage = getSpeciesClarificationMessage(
-        parsed.species
-      );
-      if (clarificationMessage) {
-        upsertPendingMessage(clarificationMessage);
+
+      if (requiresSpeciesClarification(parsed.species)) {
+        addMessage("assistant", "", {
+          type: "species_clarification",
+          data: {
+            question: "What type of squirrel?",
+            options: [...SQUIRREL_SPECIES_OPTIONS],
+          },
+        });
         return;
       }
+
+      // Reset pendingMessageIdRef so new intake cards always appear as
+      // new messages after the user's reply — avoids the card appearing
+      // above the user's answer in the chat.
+      pendingMessageIdRef.current = null;
 
       let messageContent: string;
       if (isComplete) {
         messageContent = isUpdate
-          ? "I've updated the intake. All required fields are complete - ready to save!"
-          : "Here's what I understood. Ready to save!";
+          ? "Updated! All required fields are complete — ready to save."
+          : "Here's what I captured. Ready to save!";
       } else {
         const missingList = missingFields.join(", ");
         messageContent = isUpdate
-          ? `Updated! Still missing: **${missingList}**. Provide more details or save as-is.`
-          : `I captured the intake info. Missing: **${missingList}**. You can provide more details, edit, or save as-is.`;
+          ? `Updated! Still need: ${missingList}. You can add more details or save as-is.`
+          : `Here's what I captured. Still need: ${missingList}. You can add more, edit, or save as-is.`;
       }
 
-      upsertPendingMessage(messageContent, {
+      addMessage("assistant", messageContent, {
         type: "intake_confirmation",
         data: parsed,
       });
+      pendingMessageIdRef.current = null;
     },
-    [upsertPendingMessage]
+    [addMessage]
   );
 
   const sendTextMessage = useCallback(
@@ -502,7 +537,7 @@ export function useChat() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              existingIntake: pendingIntake,
+              existingIntake: intakeToSave,
               additionalText: transcribedText,
             }),
           });
@@ -609,6 +644,18 @@ export function useChat() {
     [addMessage, handleParsedIntake]
   );
 
+  const resolveSpecies = useCallback(
+    (species: string) => {
+      if (!pendingIntake) return;
+      const updated = { ...pendingIntake, species };
+      const response = buildParseIntakeResponse(updated);
+      // Reset so the intake card appears as a new message below
+      pendingMessageIdRef.current = null;
+      handleParsedIntake(response, true);
+    },
+    [pendingIntake, buildParseIntakeResponse, handleParsedIntake]
+  );
+
   const updatePendingIntake = useCallback(
     (data: ParsedIntake) => {
       setPendingIntake(data);
@@ -650,6 +697,8 @@ export function useChat() {
     updatePendingIntake,
     confirmPendingIntake,
     clearPendingIntake,
+    discardPendingIntake,
     updateEmbeddedContent,
+    resolveSpecies,
   };
 }

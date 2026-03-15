@@ -3,6 +3,7 @@
 import { ChatMessage } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 import { IntakeConfirmationCard } from "@/components/intake/IntakeConfirmationCard";
+import { SpeciesClarification } from "@/components/intake/SpeciesClarification";
 import { AnimalRecordCard } from "@/components/intake/AnimalRecordCard";
 import { CareLogsList } from "@/components/intake/CareLogsList";
 import { AnimalsInCareList } from "@/components/intake/AnimalsInCareList";
@@ -20,6 +21,8 @@ interface ChatMessageBubbleProps {
   isProcessing?: boolean;
   onConfirmIntake?: (data: any) => void;
   onEditIntake?: (data: any) => void;
+  onDiscardIntake?: () => void;
+  onSelectSpecies?: (species: string) => void;
   onEditExistingIntake?: (data: any) => void;
   onConfirmDelete?: (recordType: "intake" | "care_log", id: string, name: string) => void;
   onCancelDelete?: () => void;
@@ -28,6 +31,7 @@ interface ChatMessageBubbleProps {
   onEditCareLog?: (log: any) => void;
   onDeleteCareLog?: (logId: string) => void;
   onUndoCareLog?: (logId: string) => void;
+  onViewAnimal?: (intakeNumber: string) => void;
 }
 
 export function ChatMessageBubble({
@@ -35,6 +39,8 @@ export function ChatMessageBubble({
   isProcessing,
   onConfirmIntake,
   onEditIntake,
+  onDiscardIntake,
+  onSelectSpecies,
   onEditExistingIntake,
   onConfirmDelete,
   onCancelDelete,
@@ -43,6 +49,7 @@ export function ChatMessageBubble({
   onEditCareLog,
   onDeleteCareLog,
   onUndoCareLog,
+  onViewAnimal,
 }: ChatMessageBubbleProps) {
   const isUser = message.role === "user";
   return (
@@ -66,7 +73,7 @@ export function ChatMessageBubble({
           }}
         >
           <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
-            {message.content}
+            {renderSimpleMarkdown(message.content)}
           </p>
         </div>
       )}
@@ -77,6 +84,8 @@ export function ChatMessageBubble({
             isProcessing,
             onConfirmIntake,
             onEditIntake,
+            onDiscardIntake,
+            onSelectSpecies,
             onEditExistingIntake,
             onConfirmDelete,
             onCancelDelete,
@@ -84,7 +93,8 @@ export function ChatMessageBubble({
             onDeleteIntake,
             onEditCareLog,
             onDeleteCareLog,
-            onUndoCareLog
+            onUndoCareLog,
+            onViewAnimal
           )}
         </div>
       )}
@@ -103,6 +113,8 @@ function renderEmbeddedContent(
   isProcessing: boolean | undefined,
   onConfirmIntake?: (data: any) => void,
   onEditIntake?: (data: any) => void,
+  onDiscardIntake?: () => void,
+  onSelectSpecies?: (species: string) => void,
   onEditExistingIntake?: (data: any) => void,
   onConfirmDelete?: (recordType: "intake" | "care_log", id: string, name: string) => void,
   onCancelDelete?: () => void,
@@ -110,7 +122,8 @@ function renderEmbeddedContent(
   onDeleteIntake?: (intake: any) => void,
   onEditCareLog?: (log: any) => void,
   onDeleteCareLog?: (logId: string) => void,
-  onUndoCareLog?: (logId: string) => void
+  onUndoCareLog?: (logId: string) => void,
+  onViewAnimal?: (intakeNumber: string) => void,
 ) {
   if (!embedded) return null;
   switch (embedded.type) {
@@ -120,7 +133,7 @@ function renderEmbeddedContent(
           data={embedded.data}
           onConfirm={() => onConfirmIntake?.(embedded.data)}
           onEdit={() => onEditIntake?.(embedded.data)}
-          isProcessing={isProcessing}
+          onDiscard={onDiscardIntake}
         />
       );
     case "animal_record":
@@ -167,7 +180,6 @@ function renderEmbeddedContent(
           intakeNumber={embedded.data.intakeNumber}
           species={embedded.data.species}
           onUndo={(logId) => onUndoCareLog?.(logId)}
-          isProcessing={isProcessing}
         />
       );
     case "animals_list":
@@ -177,6 +189,7 @@ function renderEmbeddedContent(
           totalCount={embedded.data.totalCount}
           mode={embedded.data.mode}
           statusFilter={embedded.data.statusFilter}
+          onViewAnimal={onViewAnimal}
         />
       );
     case "quick_status":
@@ -184,6 +197,7 @@ function renderEmbeddedContent(
         <QuickStatusCard
           items={embedded.data.items}
           totalUnderCare={embedded.data.totalUnderCare}
+          onViewAnimal={onViewAnimal}
         />
       );
     case "deleted_confirmation":
@@ -201,7 +215,6 @@ function renderEmbeddedContent(
               )
             }
             onCancel={() => onCancelDelete?.()}
-            isProcessing={isProcessing}
           />
         );
       }
@@ -216,6 +229,14 @@ function renderEmbeddedContent(
       return <StatisticsCard data={embedded.data} />;
     case "chart":
       return <ChartCard data={embedded.data} />;
+    case "species_clarification":
+      return (
+        <SpeciesClarification
+          question={embedded.data.question}
+          options={embedded.data.options}
+          onSelect={(species) => onSelectSpecies?.(species)}
+        />
+      );
     case "processing":
       return <ProcessingIndicator message={embedded.message} />;
     case "error":
@@ -223,4 +244,38 @@ function renderEmbeddedContent(
     default:
       return null;
   }
+}
+
+/**
+ * Renders basic markdown: **bold** and *italic*.
+ * Returns an array of React nodes with <strong> and <em> tags.
+ */
+function renderSimpleMarkdown(text: string): React.ReactNode[] {
+  // Split on **bold** and *italic* patterns
+  const parts: React.ReactNode[] = [];
+  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    // Add text before match
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    if (match[2]) {
+      // **bold**
+      parts.push(<strong key={match.index}>{match[2]}</strong>);
+    } else if (match[3]) {
+      // *italic*
+      parts.push(<em key={match.index}>{match[3]}</em>);
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
 }

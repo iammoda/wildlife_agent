@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ReactNode } from "react";
+import { useState } from "react";
 import { ParsedIntake } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -15,6 +15,7 @@ interface IntakeConfirmationCardProps {
   data: ParsedIntake;
   onConfirm: () => void;
   onEdit: () => void;
+  onDiscard?: () => void;
   isProcessing?: boolean;
 }
 
@@ -22,9 +23,11 @@ export function IntakeConfirmationCard({
   data,
   onConfirm,
   onEdit,
+  onDiscard,
   isProcessing = false,
 }: IntakeConfirmationCardProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const missingFields = REQUIRED_INTAKE_FIELDS.filter((field) => {
     const value = data[field.key as keyof ParsedIntake];
@@ -46,113 +49,113 @@ export function IntakeConfirmationCard({
     onConfirm();
   };
 
+  // Build compact subtitle parts: date, quantity, status
+  const subtitleParts: string[] = [];
+  const intakeDateStr = formatShortDate(data.intake_date);
+  if (intakeDateStr) {
+    subtitleParts.push(intakeDateStr);
+  }
+  const qty = data.quantity ?? 1;
+  subtitleParts.push(qty === 1 ? "1 animal" : `${qty} animals`);
+  if (data.sex && data.sex !== "Unknown") {
+    subtitleParts.push(data.sex);
+  }
+  if (data.disposition) {
+    subtitleParts.push(getDispositionInfo(data.disposition).shortTitle);
+  }
+  if (data.intake_reason && data.intake_reason !== "Unknown") {
+    subtitleParts.push(data.intake_reason);
+  }
+
+  // Collect populated detail fields (shown on expand)
+  const detailLines = buildDetailLines(data);
+
   return (
     <>
-      <Card variant="bordered" className="space-y-3 p-4 animate-fadeIn card-accent-top">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
+      <Card variant="bordered" className="animate-fadeIn overflow-hidden">
+        <div className="p-4 space-y-3">
+          {/* Headline: species + intake number */}
+          <div className="flex items-start justify-between gap-3">
             <h3
-              className="font-title text-xl font-semibold leading-tight"
+              className="font-title text-lg font-semibold leading-tight"
               style={{ color: "var(--color-text-primary)" }}
             >
-              Intake Preview
+              {data.species || "New Intake"}
             </h3>
-            {data.species && (
-              <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
-                {data.species}
-              </p>
+            {data.intake_number && (
+              <span
+                className="text-xs font-mono px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{
+                  color: "var(--color-brand-accent)",
+                  backgroundColor: "var(--color-brand-light)",
+                }}
+              >
+                {data.intake_number}
+              </span>
             )}
           </div>
-          {data.intake_number && (
-            <span
-            className="text-xs font-mono px-2.5 py-1 rounded-full"
-            style={{
-              color: "var(--color-brand-accent)",
-              backgroundColor: "var(--color-brand-light)",
-                border: "1px solid var(--color-border)",
-              }}
+
+          {/* Compact subtitle */}
+          <p
+            className="text-sm leading-snug"
+            style={{ color: "var(--color-text-secondary)" }}
+          >
+            {subtitleParts.join(" \u00B7 ")}
+          </p>
+
+          {/* Missing fields — soft prose, not an alarm */}
+          {!hasAllRequired && (
+            <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+              Still need: {missingFields.join(", ").toLowerCase()}
+            </p>
+          )}
+
+          {/* Expanded details — only populated fields, no section headers */}
+          {showDetails && detailLines.length > 0 && (
+            <div
+              className="pt-1 space-y-1.5 animate-fadeIn"
             >
-              {data.intake_number}
-            </span>
+              {detailLines.map(({ label, value }) => (
+                <div key={label} className="text-sm">
+                  <span style={{ color: "var(--color-text-muted)" }}>{label}: </span>
+                  <span style={{ color: "var(--color-text-primary)" }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Toggle details */}
+          {detailLines.length > 0 && (
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className="text-xs font-medium transition-colors"
+              style={{ color: "var(--color-brand-accent)" }}
+            >
+              {showDetails ? "\u2212 Hide details" : "+ Show details"}
+            </button>
           )}
         </div>
 
-        {!hasAllRequired && (
-          <div
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
-            style={{
-              backgroundColor:
-                "color-mix(in srgb, var(--color-error) 12%, var(--color-bg-secondary))",
-              color: "var(--color-text-primary)",
-              border: "1px solid var(--color-border-light)",
-            }}
-          >
-            <WarningIcon />
-            <p>
-              <span className="font-medium">Missing:</span>{" "}
-              <span style={{ color: "var(--color-text-secondary)" }}>
-                {missingFields.join(", ")}
-              </span>
-            </p>
-          </div>
-        )}
-
-        <PreviewSection title="Core Intake">
-          <div className="inline-fields">
-            <DetailField label="Intake Date" value={formatDisplayDate(data.intake_date)} />
-            <DetailField label="Quantity" value={data.quantity?.toString()} />
-            <DetailField label="Sex" value={data.sex} />
-            <DetailField label="Intake Reason" value={data.intake_reason} required />
-            <DetailField
-              label="Status"
-              value={data.disposition ? getDispositionInfo(data.disposition).shortTitle : undefined}
-            />
-          </div>
-        </PreviewSection>
-
-        <PreviewSection title="Finder Details">
-          <div className="inline-fields">
-            <DetailField label="Finder Name" value={data.finder_name} required />
-            <DetailField label="Finder Phone" value={data.finder_phone} required />
-            <DetailField label="Finder Email" value={data.finder_email} />
-            <DetailField label="Found Date" value={formatDisplayDate(data.found_date)} />
-          </div>
-          <DetailField label="Found Location" value={data.found_location} required block />
-          <DetailField label="Finder Address" value={data.finder_address} block />
-        </PreviewSection>
-
-        <PreviewSection title="Condition & Outcome">
-          <div className="inline-fields">
-            <DetailField label="Weight" value={data.weight} />
-            <DetailField label="Age" value={data.age} />
-            <DetailField label="Distress Code" value={formatDistressCode(data)} />
-            <DetailField label="Food Offered" value={data.food_offered} />
-            <DetailField label="Donation Amount" value={data.donation_amount} />
-            <DetailField
-              label="Disposition Date"
-              value={formatDisplayDate(data.disposition_date)}
-            />
-          </div>
-        </PreviewSection>
-
-        {(data.how_description || data.notes || data.exam_notes) && (
-          <PreviewSection title="Notes">
-            <div className="space-y-1">
-              <DetailField
-                label="Description"
-                value={data.how_description}
-                block
-              />
-              <DetailField label="Notes" value={data.notes} block />
-              <DetailField label="Exam Notes" value={data.exam_notes} block />
-            </div>
-          </PreviewSection>
-        )}
-
-        <div className="section-divider flex flex-wrap gap-2 pt-2">
+        {/* Action bar — clean separator */}
+        <div
+          className="flex items-center gap-2 px-4 py-3"
+          style={{ borderTop: "1px solid var(--color-border-light)" }}
+        >
+          {onDiscard && (
+            <button
+              onClick={onDiscard}
+              disabled={isProcessing}
+              className="text-sm transition-colors"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              Discard
+            </button>
+          )}
+          <div className="flex-1" />
           <Button
             onClick={onEdit}
             variant="ghost"
+            size="sm"
             className="btn-edit-subtle"
             disabled={isProcessing}
           >
@@ -161,10 +164,11 @@ export function IntakeConfirmationCard({
           <Button
             onClick={handleSaveClick}
             variant="ghost"
+            size="sm"
             className="btn-primary-green"
             disabled={isProcessing}
           >
-            {isProcessing ? "Saving..." : "Save Intake"}
+            {isProcessing ? "Saving..." : "Save"}
           </Button>
         </div>
       </Card>
@@ -172,24 +176,15 @@ export function IntakeConfirmationCard({
       <Modal
         isOpen={showConfirmDialog}
         onClose={() => setShowConfirmDialog(false)}
-        title="Save with missing information?"
+        title="Save with missing info?"
         size="sm"
       >
-        <div className="space-y-4">
-          <p style={{ color: "var(--color-text-secondary)" }}>
-            The following required fields are empty:
+        <div className="space-y-3">
+          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+            These fields are still empty: {missingFields.join(", ").toLowerCase()}.
+            You can fill them in later.
           </p>
-          <ul className="list-disc list-inside space-y-1">
-            {missingFields.map((field) => (
-              <li key={field} style={{ color: "var(--color-text-primary)" }}>
-                {field}
-              </li>
-            ))}
-          </ul>
-          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-            You can add this information later by editing the intake record.
-          </p>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-1">
             <Button
               variant="ghost"
               size="sm"
@@ -199,7 +194,7 @@ export function IntakeConfirmationCard({
               Cancel
             </Button>
             <Button size="sm" onClick={handleConfirmSave} disabled={isProcessing}>
-              {isProcessing ? "Saving..." : "Save Anyway"}
+              {isProcessing ? "Saving..." : "Save anyway"}
             </Button>
           </div>
         </div>
@@ -208,86 +203,58 @@ export function IntakeConfirmationCard({
   );
 }
 
-interface PreviewSectionProps {
-  title: string;
-  children: ReactNode;
-}
+// --- Helpers ---
 
-function PreviewSection({ title, children }: PreviewSectionProps) {
-  return (
-    <section className="section-divider pt-2">
-      <p className="section-label mb-2">{title}</p>
-      {children}
-    </section>
-  );
-}
-
-interface DetailFieldProps {
+interface DetailLine {
   label: string;
-  value?: string | null;
-  required?: boolean;
-  block?: boolean;
+  value: string;
 }
 
-function DetailField({ label, value, required, block }: DetailFieldProps) {
-  const isEmpty = !value;
-  if (isEmpty && !required) return null;
+/**
+ * Collects only populated fields beyond what's already shown in the subtitle.
+ * Excludes species, intake_number, intake_date, quantity, sex, disposition,
+ * and intake_reason since those are in the headline/subtitle.
+ */
+function buildDetailLines(data: ParsedIntake): DetailLine[] {
+  const lines: DetailLine[] = [];
+  const add = (label: string, value?: string | null) => {
+    if (value) lines.push({ label, value });
+  };
 
-  if (block) {
-    return (
-      <div className="mt-1">
-        <span className="text-xs text-muted">{label}</span>
-        <p
-          className="text-sm text-primary leading-snug whitespace-pre-wrap break-words"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          {value || "Not provided"}
-        </p>
-      </div>
+  add("Finder", data.finder_name);
+  add("Phone", data.finder_phone);
+  add("Email", data.finder_email);
+  add("Found", formatShortDate(data.found_date));
+  add("Location", data.found_location);
+  add("Address", data.finder_address);
+  add("Weight", data.weight);
+  add("Age", data.age);
+  if (data.distress_code) {
+    add(
+      "Distress",
+      data.distress_subcode
+        ? `${data.distress_code}-${data.distress_subcode}`
+        : data.distress_code
     );
   }
+  add("Food offered", data.food_offered);
+  add("Donation", data.donation_amount);
+  add("Disposition date", formatShortDate(data.disposition_date));
+  add("Description", data.how_description);
+  add("Notes", data.notes);
+  add("Exam notes", data.exam_notes);
 
-  return (
-    <span className="text-sm">
-      <span className="text-xs text-muted">
-        {label}
-        :
-      </span>{" "}
-      <span className="font-medium text-primary" style={{ color: "var(--color-text-primary)" }}>
-        {value || "Not provided"}
-      </span>
-    </span>
-  );
+  return lines;
 }
 
-function formatDistressCode(data: ParsedIntake): string | undefined {
-  if (!data.distress_code) return undefined;
-  if (data.distress_subcode) {
-    return `${data.distress_code}-${data.distress_subcode}`;
-  }
-  return data.distress_code;
-}
-
-function formatDisplayDate(value?: string | null): string | undefined {
+function formatShortDate(value?: string | null): string | undefined {
   if (!value) return undefined;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
-}
-
-function WarningIcon() {
-  return (
-    <svg
-      className="mt-0.5 h-4 w-4 flex-shrink-0"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      aria-hidden="true"
-    >
-      <path d="M12 9v4" strokeLinecap="round" />
-      <path d="M12 17h.01" strokeLinecap="round" />
-      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-    </svg>
-  );
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }

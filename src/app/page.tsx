@@ -10,8 +10,8 @@ import { ChatView } from "@/components/chat/ChatView";
 import { WelcomeView } from "@/components/chat/WelcomeView";
 import { ChatInputBar } from "@/components/chat/ChatInputBar";
 import { SummaryBar } from "@/components/chat/SummaryBar";
-import { IntakeEditModal } from "@/components/intake/IntakeEditModal";
-import { CareLogEditModal } from "@/components/intake/CareLogEditModal";
+import { IntakeEditPanel } from "@/components/intake/IntakeEditPanel";
+import { CareLogEditPanel } from "@/components/intake/CareLogEditPanel";
 import { DailyCareLog, ParsedIntake } from "@/lib/types";
 import { useToast } from "@/components/ui/Toast";
 
@@ -60,8 +60,12 @@ export default function HomePage() {
     deleteIntake,
     deleteCareLog,
     undoCareLog,
+    addMessage,
     clearMessages,
     updateEmbeddedContent,
+    clearPendingIntake,
+    discardPendingIntake,
+    resolveSpecies,
   } = useChat();
   const { showToast } = useToast();
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -119,6 +123,10 @@ export default function HomePage() {
     refreshSummary();
   };
 
+  const handleDiscardIntake = () => {
+    discardPendingIntake();
+  };
+
   const handleEditIntake = (data: ParsedIntake) => {
     setEditingIntake(data);
     setEditMode("create");
@@ -159,6 +167,7 @@ export default function HomePage() {
   };
 
   const handleCancelDelete = () => {
+    addMessage("assistant", "Deletion cancelled.");
   };
 
   const handleAddCareLog = (intakeNumber: string) => {
@@ -208,6 +217,10 @@ export default function HomePage() {
 
   const handleLogoClick = () => {
     clearMessages();
+  };
+
+  const handleViewAnimal = (intakeNumber: string) => {
+    sendTextMessage(`show me ${intakeNumber}`);
   };
 
   const handleAnimalsInCareClick = () => {
@@ -265,6 +278,8 @@ export default function HomePage() {
           isProcessing={isProcessing}
           onConfirmIntake={handleConfirmIntake}
           onEditIntake={handleEditIntake}
+          onDiscardIntake={handleDiscardIntake}
+          onSelectSpecies={resolveSpecies}
           onEditExistingIntake={handleEditExistingIntake}
           onConfirmDelete={handleConfirmDelete}
           onCancelDelete={handleCancelDelete}
@@ -273,6 +288,7 @@ export default function HomePage() {
           onEditCareLog={handleEditCareLog}
           onDeleteCareLog={(logId) => deleteCareLog(logId)}
           onUndoCareLog={undoCareLog}
+          onViewAnimal={handleViewAnimal}
         />
       
       <ChatInputBar
@@ -290,7 +306,7 @@ export default function HomePage() {
       />
       
       {editingIntake && (
-        <IntakeEditModal
+        <IntakeEditPanel
           isOpen={editModalOpen}
           onClose={() => {
             setEditModalOpen(false);
@@ -304,7 +320,7 @@ export default function HomePage() {
         />
       )}
       {editingCareLog && (
-        <CareLogEditModal
+        <CareLogEditPanel
           isOpen={careLogModalOpen}
           onClose={() => {
             setCareLogModalOpen(false);
